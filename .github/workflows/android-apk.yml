@@ -45,8 +45,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      # I runner ubuntu-latest di GitHub includono gia' un Android SDK
+      # preinstallato (ANDROID_HOME/ANDROID_SDK_ROOT e PATH gia' configurati).
+      # Non serve installarlo da capo: la action android-actions/setup-android
+      # tentava di installare anche il pacchetto legacy "tools", rimosso da
+      # tempo dal repository di Google, e falliva subito per questo. Ci
+      # limitiamo ad accettare le licenze (idempotente) cosi' Gradle puo'
+      # scaricare da solo eventuali piattaforme/build-tools mancanti.
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses > /dev/null || true
 
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v4
