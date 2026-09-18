@@ -6,6 +6,7 @@ import CategoryBrowser from "./components/CategoryBrowser";
 import SearchPanel from "./components/SearchPanel";
 import ModelInfoPanel from "./components/ModelInfoPanel";
 import ViewControls from "./components/ViewControls";
+import FloorsPanel from "./components/FloorsPanel";
 import {
   createViewer,
   loadIfc,
@@ -29,6 +30,9 @@ import {
   captureScreenshot,
   addMeasurementPoint,
   clearMeasurements,
+  setPlanView,
+  getStoreys,
+  isolateStorey,
 } from "./ifc/viewer";
 import "./App.css";
 
@@ -64,6 +68,8 @@ export default function App() {
   const [gridVisible, setGridVisibleState] = useState(true);
   const [measureMode, setMeasureMode] = useState(false);
   const [measureStatus, setMeasureStatus] = useState(null);
+  const [floors, setFloors] = useState(null);
+  const [planMode, setPlanMode] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,6 +105,8 @@ export default function App() {
     setRenderStyleState("shaded");
     setMeasureMode(false);
     setMeasureStatus(null);
+    setFloors(null);
+    setPlanMode(false);
     try {
       await resetModels(viewer);
       const buffer = await file.arrayBuffer();
@@ -111,6 +119,7 @@ export default function App() {
       setTree(spatialTree);
       setCategories(modelCategories);
       setModelSize(getModelBoxSize(viewer, model.modelId));
+      setFloors(await getStoreys(viewer, model.modelId, spatialTree));
       setFileName(file.name);
       setPanelOpen(true);
       setActiveTab("tree");
@@ -247,6 +256,29 @@ export default function App() {
     downloadDataUrl(dataUrl, `ifc-screenshot-${Date.now()}.png`);
   }
 
+  async function handleTogglePlan(enabled) {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    await setPlanView(viewer, enabled);
+    setPlanMode(enabled);
+  }
+
+  async function handleSelectFloor(floor) {
+    const viewer = viewerRef.current;
+    const modelId = currentModelIdRef.current;
+    if (!viewer || !modelId) return;
+    await isolateStorey(viewer, modelId, floor);
+    setPlanMode(true);
+  }
+
+  async function handleExitPlan() {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    await showAllItems(viewer);
+    await setPlanView(viewer, false);
+    setPlanMode(false);
+  }
+
   function handlePointerDown(e) {
     pointerDownRef.current = {
       x: e.clientX,
@@ -327,6 +359,8 @@ export default function App() {
           onToggleMeasure={handleToggleMeasure}
           onClearMeasurements={handleClearMeasurements}
           onScreenshot={handleScreenshot}
+          planMode={planMode}
+          onTogglePlan={handleTogglePlan}
         />
       </div>
       {panelOpen && (
@@ -335,6 +369,7 @@ export default function App() {
             {[
               ["tree", "Struttura"],
               ["categories", "Categorie"],
+              ["floors", "Piani"],
               ["search", "Cerca"],
               ["properties", "Proprietà"],
               ["info", "Info"],
@@ -362,6 +397,14 @@ export default function App() {
             )}
             {activeTab === "categories" && (
               <CategoryBrowser categories={categories} onIsolate={handleIsolateCategory} />
+            )}
+            {activeTab === "floors" && (
+              <FloorsPanel
+                floors={floors}
+                planActive={planMode}
+                onSelectFloor={handleSelectFloor}
+                onExitPlan={handleExitPlan}
+              />
             )}
             {activeTab === "search" && (
               <SearchPanel

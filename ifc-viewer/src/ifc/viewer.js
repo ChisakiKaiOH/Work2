@@ -71,6 +71,7 @@ export async function createViewer(container) {
     searchIndex: null, // built lazily per loaded model
     renderStyle: "shaded",
     measurement: { points: [], lines: [] },
+    planMode: false,
   };
 }
 
@@ -140,6 +141,9 @@ export async function resetModels(state) {
   clearSections(state);
   clearMeasurements(state);
   state.renderStyle = "shaded";
+  if (state.planMode) {
+    await setPlanView(state, false);
+  }
   for (const model of state.models.values()) {
     await model.dispose();
   }
@@ -372,4 +376,87 @@ export function clearMeasurements(state) {
   }
   state.measurement.points = [];
   state.measurement.lines = [];
+}
+
+// --- 2D plan view ------------------------------------------------------------
+
+export async function setPlanView(state, enabled) {
+  const camera = state.world.camera;
+  state.planMode = enabled;
+  if (enabled) {
+    await camera.projection.set("Orthographic");
+    await camera.controls.rotateTo(0, 0.001, true);
+    camera.set("Plan");
+  } else {
+    camera.set("Orbit");
+    await camera.projection.set("Perspective");
+  }
+  await camera.fitToItems();
+}
+
+// --- Floors (building storeys) ------------------------------------------------
+
+function collectLocalIds(node, out) {
+  if (node.localId != null) out.push(node.localId);
+  for (const child of node.children || []) collectLocalIds(child, out);
+}
+
+function findStoreyNodes(node, out) {
+  if (node.category && /BUILDINGSTOREY/i.test(node.category)) {
+    out.push(node);
+  }
+  for (const child of node.children || []) findStoreyNodes(child, out);
+}
+
+// getSpatialStructure() sometimes represents a storey as a bucket node
+// (category set, no localId of its own) wrapping the single real instance
+// (no category, the real localId) one level down — same pattern the
+// spatial tree UI unwraps. Follow that chain to find the real id.
+function resolveRealLocalId(node) {
+  let current = node;
+  while (current.localId == null && current.children?.length === 1) {
+    current = current.children[0];
+  }
+  return current.localId;
+}
+
+export async function getStoreys(state, modelId, tree) {
+  const model = state.models.get(modelId);
+  if (!model || !tree) return [];
+  const storeyNodes = [];
+  findStoreyNodes(tree, storeyNodes);
+  if (storeyNodes.length === 0) return [];
+
+  const pairs = storeyNodes
+    .map((node) => [node, resolveRealLocalId(node)])
+    .filter(([, id]) => id != null);
+  const storeyIds = pairs.map(([, id]) => id);
+  const dataList = storeyIds.length
+    ? await model.getItemsData(storeyIds, { attributesDefault: true })
+    : [];
+  const dataById = new Map(storeyIds.map((id, i) => [id, dataList[i]]));
+
+  const storeys = pairs.map(([node, resolvedId]) => {
+    const ids = [];
+    collectLocalIds(node, ids);
+    const data = dataById.get(resolvedId);
+    return {
+      localId: resolvedId,
+      name: data?.Name?.value ?? null,
+      elevation: typeof data?.Elevation?.value === "number" ? data.Elevation.value : null,
+      ids,
+    };
+  });
+
+  storeys.sort((a, b) => {
+    if (a.elevation != null && b.elevation != null) return a.elevation - b.elevation;
+    return 0;
+  });
+  return storeys;
+}
+
+export async function isolateStorey(state, modelId, storey) {
+  await isolateItems(state, modelId, storey.ids);
+  await setPlanView(state, true);
+  await state.world.camera.fitToItems({ [modelId]: new Set(storey.ids) });
 }

@@ -31,6 +31,11 @@ property set, quantita').
 - **Misura**: tocca due punti nel modello per misurarne la distanza (linea +
   valore in metri); "Cancella misure" rimuove le misurazioni fatte.
 - **Screenshot**: salva la vista 3D corrente come immagine PNG.
+- **Vista in pianta**: tocca "Pianta" per passare a una vista ortogonale
+  dall'alto con solo pan/zoom (senza rotazione), come una planimetria 2D.
+- **Piani**: elenco dei piani (`IfcBuildingStorey`) del modello, ordinati per
+  quota; tocca un piano per isolarlo e passare automaticamente alla vista in
+  pianta di quel livello.
 
 ## Stack tecnologico
 

@@ -18,6 +18,8 @@ export default function ViewControls({
   onToggleMeasure,
   onClearMeasurements,
   onScreenshot,
+  planMode,
+  onTogglePlan,
 }) {
   if (!visible) return null;
   return (
@@ -33,6 +35,14 @@ export default function ViewControls({
       </button>
       <button type="button" className="view-btn" onClick={() => onView("iso")}>
         Iso
+      </button>
+      <button
+        type="button"
+        className={planMode ? "view-btn view-btn-active" : "view-btn"}
+        onClick={() => onTogglePlan(!planMode)}
+        title="Vista dall'alto in ortogonale, con pan/zoom senza rotazione"
+      >
+        Pianta
       </button>
 
       <div className="view-controls-separator" />
