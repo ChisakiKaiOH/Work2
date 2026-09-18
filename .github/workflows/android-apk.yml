@@ -1,0 +1,97 @@
+name: Build Android APK
+
+# Compila l'APK del progetto Capacitor in frontend/android. Il repository
+# Maven di Google (necessario al plugin Gradle di Android) non e' raggiungibile
+# dall'ambiente di sviluppo remoto usato per questo progetto: questa pipeline
+# gira invece sui runner ospitati da GitHub, dove quell'accesso e' disponibile.
+on:
+  workflow_dispatch:
+    inputs:
+      api_base:
+        description: >-
+          URL base dell'API backend che l'app Android deve contattare
+          (es. http://192.168.1.50:4000/api). Lascia vuoto per usare il
+          valore gia' impostato nel repository (variabile ANDROID_API_BASE),
+          se presente.
+        required: false
+        default: ''
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/android-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend web assets
+        working-directory: frontend
+        env:
+          # In fase di build statica il frontend viene caricato dentro il
+          # guscio nativo Capacitor (origine locale sul telefono), quindi le
+          # chiamate all'API vanno puntate esplicitamente al backend: usa
+          # l'input manuale se lanciato a mano, altrimenti la variabile di
+          # repository ANDROID_API_BASE (Settings -> Secrets and variables ->
+          # Actions -> Variables), altrimenti resta '/api' (funziona solo se
+          # il backend gira sulla stessa origine, non e' il caso tipico su
+          # Android).
+          VITE_API_BASE: ${{ inputs.api_base || vars.ANDROID_API_BASE }}
+        run: npm run build
+
+      - name: Sync Capacitor Android project
+        working-directory: frontend
+        run: npx cap sync android
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('frontend/android/**/*.gradle*', 'frontend/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Build debug APK
+        working-directory: frontend/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: shie-hassaikai-application-debug-apk
+          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

@@ -82,15 +82,31 @@ prima di generare l'installer definitivo.
 
 ## 2. Android
 
-### App nativa (Capacitor)
+### App nativa (Capacitor) - build automatica via GitHub Actions (consigliato)
 
-Il progetto nativo Android e' gia' generato in `frontend/android/`, incluse
-icone adattive e splash screen basati sul logo. Per costruire l'APK serve
-Android Studio / SDK sulla propria macchina.
+Non serve installare Android Studio da nessuna parte: il workflow
+`.github/workflows/android-apk.yml` compila l'APK sui runner di GitHub.
 
-L'app nativa carica un pacchetto web statico e non ha un server locale sul
-telefono: va quindi puntata all'indirizzo del backend (in esecuzione sul PC,
-vedi sopra) in fase di build, impostando `VITE_API_BASE`:
+1. (Opzionale ma consigliato) imposta l'indirizzo del backend che l'app deve
+   contattare: **Settings -> Secrets and variables -> Actions -> Variables**,
+   crea `ANDROID_API_BASE` con valore `http://<ip-del-pc>:4000/api` (l'IP a
+   cui il telefono raggiunge il PC che fa da server). Senza questa variabile
+   l'app compilata usera' `/api` relativo, che funziona solo se l'app viene
+   servita dalla stessa origine del backend (non e' il caso tipico su
+   Android).
+2. Il workflow parte da solo a ogni push che tocca `frontend/**`, oppure
+   lancialo a mano da **Actions -> Build Android APK -> Run workflow** (li'
+   puoi anche passare un indirizzo diverso una tantum, senza toccare la
+   variabile di repository).
+3. A build finita, apri il run del workflow e scarica l'artifact
+   `shie-hassaikai-application-debug-apk` dalla sezione "Artifacts": contiene
+   `app-debug.apk`.
+4. Copia l'APK sul telefono e installalo (abilitando "Origini sconosciute" se
+   richiesto), oppure `adb install app-debug.apk`.
+
+### App nativa (Capacitor) - build locale con Android Studio
+
+In alternativa, se hai Android Studio / SDK sulla tua macchina:
 
 ```bash
 cd frontend
@@ -107,9 +123,6 @@ cd frontend/android
 ./gradlew assembleDebug
 # APK generato in android/app/build/outputs/apk/debug/app-debug.apk
 ```
-
-Copia l'APK sul telefono e installalo (abilitando "Origini sconosciute" se
-richiesto), oppure usa `adb install app-debug.apk`.
 
 ### Alternativa senza build: PWA dal browser
 
