@@ -26,6 +26,11 @@ property set, quantita').
   vedere l'interno del modello, o rimuovili.
 - **Info modello**: nome del file, numero di elementi, dimensioni
   complessive e conteggio per categoria.
+- **Stili grafici**: Ombreggiato, Wireframe e Trasparente (X-ray), oltre al
+  toggle della griglia di riferimento.
+- **Misura**: tocca due punti nel modello per misurarne la distanza (linea +
+  valore in metri); "Cancella misure" rimuove le misurazioni fatte.
+- **Screenshot**: salva la vista 3D corrente come immagine PNG.
 
 ## Stack tecnologico
 

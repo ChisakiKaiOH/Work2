@@ -34,7 +34,6 @@ export async function createViewer(container) {
   world.scene.three.background = new THREE.Color("#dce3e8");
 
   const grids = components.get(OBC.Grids);
-  grids.create(world);
 
   const fragments = components.get(OBC.FragmentsManager);
   const workerUrl = new URL("/fragments-worker.mjs", window.location.origin).href;
@@ -57,6 +56,8 @@ export async function createViewer(container) {
   const clipper = components.get(OBC.Clipper);
   clipper.setup();
 
+  const grid = grids.create(world);
+
   return {
     components,
     world,
@@ -64,9 +65,12 @@ export async function createViewer(container) {
     ifcLoader,
     hider,
     clipper,
+    grid,
     models: new Map(), // modelId -> FragmentsModel
     selected: null, // { modelId, localId }
     searchIndex: null, // built lazily per loaded model
+    renderStyle: "shaded",
+    measurement: { points: [], lines: [] },
   };
 }
 
@@ -134,6 +138,8 @@ export async function getSpatialTree(state, modelId) {
 export async function resetModels(state) {
   await clearSelection(state);
   clearSections(state);
+  clearMeasurements(state);
+  state.renderStyle = "shaded";
   for (const model of state.models.values()) {
     await model.dispose();
   }
@@ -274,4 +280,96 @@ export function addSectionPlane(state, axis) {
 
 export function clearSections(state) {
   state.clipper.deleteAll();
+}
+
+// --- Render styles -------------------------------------------------------
+
+function forEachMesh(state, fn) {
+  for (const model of state.models.values()) {
+    model.object.traverse((child) => {
+      if (child.isMesh) fn(child);
+    });
+  }
+}
+
+export const RENDER_STYLES = ["shaded", "wireframe", "xray"];
+
+export function setRenderStyle(state, style) {
+  state.renderStyle = style;
+  forEachMesh(state, (mesh) => {
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const m of materials) {
+      if (!m) continue;
+      // Remember the fragments-provided defaults the first time we touch a
+      // material, so switching back to "shaded" restores them exactly.
+      if (m.userData.__origOpacity === undefined) {
+        m.userData.__origOpacity = m.opacity;
+        m.userData.__origTransparent = m.transparent;
+      }
+      m.wireframe = style === "wireframe";
+      if (style === "xray") {
+        m.transparent = true;
+        m.opacity = 0.3;
+      } else {
+        m.transparent = m.userData.__origTransparent;
+        m.opacity = m.userData.__origOpacity;
+      }
+      m.needsUpdate = true;
+    }
+  });
+}
+
+export function setGridVisible(state, visible) {
+  if (state.grid) state.grid.visible = visible;
+}
+
+// --- Screenshot ------------------------------------------------------------
+
+export function captureScreenshot(state) {
+  const canvas = state.world.renderer.three.domElement;
+  return canvas.toDataURL("image/png");
+}
+
+// --- Measurement -------------------------------------------------------------
+
+export function startMeasurement(state) {
+  state.measurement.points = [];
+}
+
+export async function addMeasurementPoint(state, event) {
+  const dom = state.world.renderer.three.domElement;
+  const result = await state.fragments.raycast({
+    camera: state.world.camera.three,
+    mouse: toClientMouse(event),
+    dom,
+  });
+  if (!result) return null;
+
+  state.measurement.points.push(result.point.clone());
+  if (state.measurement.points.length < 2) {
+    return { distance: null, done: false };
+  }
+
+  const [a, b] = state.measurement.points;
+  const distance = a.distanceTo(b);
+  const geometry = new THREE.BufferGeometry().setFromPoints([a, b]);
+  const line = new THREE.Line(
+    geometry,
+    new THREE.LineBasicMaterial({ color: 0xff9800, depthTest: false })
+  );
+  line.renderOrder = 999;
+  state.world.scene.three.add(line);
+  state.measurement.lines.push(line);
+  state.measurement.points = [];
+  return { distance, done: true };
+}
+
+export function clearMeasurements(state) {
+  for (const line of state.measurement.lines) {
+    state.world.scene.three.remove(line);
+    line.geometry.dispose();
+    line.material.dispose();
+  }
+  state.measurement.points = [];
+  state.measurement.lines = [];
 }

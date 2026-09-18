@@ -1,9 +1,23 @@
+const STYLES = [
+  ["shaded", "Ombreggiato"],
+  ["wireframe", "Wireframe"],
+  ["xray", "Trasparente"],
+];
+
 export default function ViewControls({
   visible,
   onView,
   onAddSection,
   onClearSections,
   onShowAll,
+  renderStyle,
+  onSetRenderStyle,
+  gridVisible,
+  onToggleGrid,
+  measureMode,
+  onToggleMeasure,
+  onClearMeasurements,
+  onScreenshot,
 }) {
   if (!visible) return null;
   return (
@@ -20,6 +34,24 @@ export default function ViewControls({
       <button type="button" className="view-btn" onClick={() => onView("iso")}>
         Iso
       </button>
+
+      <div className="view-controls-separator" />
+      {STYLES.map(([key, label]) => (
+        <button
+          key={key}
+          type="button"
+          className={
+            renderStyle === key ? "view-btn view-btn-active" : "view-btn"
+          }
+          onClick={() => onSetRenderStyle(key)}
+        >
+          {label}
+        </button>
+      ))}
+      <button type="button" className="view-btn" onClick={() => onToggleGrid(!gridVisible)}>
+        {gridVisible ? "Nascondi griglia" : "Mostra griglia"}
+      </button>
+
       <div className="view-controls-separator" />
       <button
         type="button"
@@ -40,6 +72,23 @@ export default function ViewControls({
       <button type="button" className="view-btn" onClick={onClearSections}>
         Rimuovi sez.
       </button>
+
+      <div className="view-controls-separator" />
+      <button
+        type="button"
+        className={measureMode ? "view-btn view-btn-active" : "view-btn"}
+        onClick={() => onToggleMeasure(!measureMode)}
+        title="Tocca due punti nel modello per misurare la distanza"
+      >
+        {measureMode ? "Misura: tocca 2 punti" : "Misura"}
+      </button>
+      <button type="button" className="view-btn" onClick={onClearMeasurements}>
+        Cancella misure
+      </button>
+      <button type="button" className="view-btn" onClick={onScreenshot}>
+        Screenshot
+      </button>
+
       <div className="view-controls-separator" />
       <button type="button" className="view-btn" onClick={onShowAll}>
         Mostra tutto

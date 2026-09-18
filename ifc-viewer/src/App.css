@@ -407,10 +407,14 @@
   position: absolute;
   left: 10px;
   top: 60px;
+  bottom: 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
   z-index: 4;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
 }
 
 .view-btn {
@@ -424,14 +428,39 @@
   cursor: pointer;
   touch-action: manipulation;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  flex: none;
+  white-space: nowrap;
 }
 
 .view-btn:active {
   background: color-mix(in srgb, var(--accent) 16%, var(--panel-bg));
 }
 
+.view-btn-active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+}
+
 .view-controls-separator {
   height: 1px;
   background: var(--border);
   margin: 2px 0;
+  flex: none;
+}
+
+.measure-status {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  z-index: 4;
+  white-space: nowrap;
 }

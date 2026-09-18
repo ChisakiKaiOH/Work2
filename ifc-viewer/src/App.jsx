@@ -24,8 +24,22 @@ import {
   setView,
   addSectionPlane,
   clearSections,
+  setRenderStyle,
+  setGridVisible,
+  captureScreenshot,
+  addMeasurementPoint,
+  clearMeasurements,
 } from "./ifc/viewer";
 import "./App.css";
+
+function downloadDataUrl(dataUrl, filename) {
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
 
 const TAP_MAX_MOVEMENT = 8; // px
 const TAP_MAX_DURATION = 500; // ms
@@ -46,6 +60,10 @@ export default function App() {
   const [selection, setSelection] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("tree");
+  const [renderStyle, setRenderStyleState] = useState("shaded");
+  const [gridVisible, setGridVisibleState] = useState(true);
+  const [measureMode, setMeasureMode] = useState(false);
+  const [measureStatus, setMeasureStatus] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +96,9 @@ export default function App() {
     setTree(null);
     setCategories(null);
     setModelSize(null);
+    setRenderStyleState("shaded");
+    setMeasureMode(false);
+    setMeasureStatus(null);
     try {
       await resetModels(viewer);
       const buffer = await file.arrayBuffer();
@@ -193,6 +214,39 @@ export default function App() {
     clearSections(viewer);
   }
 
+  function handleSetRenderStyle(style) {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    setRenderStyle(viewer, style);
+    setRenderStyleState(style);
+  }
+
+  function handleToggleGrid(visible) {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    setGridVisible(viewer, visible);
+    setGridVisibleState(visible);
+  }
+
+  function handleToggleMeasure(enabled) {
+    setMeasureMode(enabled);
+    setMeasureStatus(enabled ? "Tocca il primo punto" : null);
+  }
+
+  function handleClearMeasurements() {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    clearMeasurements(viewer);
+    setMeasureStatus(measureMode ? "Tocca il primo punto" : null);
+  }
+
+  function handleScreenshot() {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    const dataUrl = captureScreenshot(viewer);
+    downloadDataUrl(dataUrl, `ifc-screenshot-${Date.now()}.png`);
+  }
+
   function handlePointerDown(e) {
     pointerDownRef.current = {
       x: e.clientX,
@@ -213,6 +267,19 @@ export default function App() {
 
     const viewer = viewerRef.current;
     if (!viewer) return;
+
+    if (measureMode) {
+      const result = await addMeasurementPoint(viewer, e);
+      if (!result) {
+        setMeasureStatus("Nessun punto sotto il tocco: riprova sul modello");
+      } else if (result.done) {
+        setMeasureStatus(`Distanza: ${result.distance.toFixed(3)} m`);
+      } else {
+        setMeasureStatus("Tocca il secondo punto");
+      }
+      return;
+    }
+
     const hit = await pickAtPointer(viewer, e);
     if (hit) {
       await handlePick(hit.modelId, hit.localId);
@@ -245,12 +312,21 @@ export default function App() {
           </div>
         )}
         {error && <div className="viewer-error">{error}</div>}
+        {measureStatus && <div className="measure-status">{measureStatus}</div>}
         <ViewControls
           visible={ready && !!fileName}
           onView={handleView}
           onAddSection={handleAddSection}
           onClearSections={handleClearSections}
           onShowAll={handleShowAll}
+          renderStyle={renderStyle}
+          onSetRenderStyle={handleSetRenderStyle}
+          gridVisible={gridVisible}
+          onToggleGrid={handleToggleGrid}
+          measureMode={measureMode}
+          onToggleMeasure={handleToggleMeasure}
+          onClearMeasurements={handleClearMeasurements}
+          onScreenshot={handleScreenshot}
         />
       </div>
       {panelOpen && (
