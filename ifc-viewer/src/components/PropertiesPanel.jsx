@@ -77,7 +77,38 @@ function ItemDataView({ data }) {
   );
 }
 
-export default function PropertiesPanel({ selection }) {
+function serializeItemData(data, indent = "") {
+  if (!data || typeof data !== "object") return "";
+  let lines = [];
+  const label = data.Name?.value ?? data.NominalValue?.value ?? null;
+  if (label != null) lines.push(`${indent}${label}`);
+  for (const [key, value] of Object.entries(data)) {
+    if (HIDDEN_KEYS.has(key)) continue;
+    if (Array.isArray(value)) {
+      if (!value.length) continue;
+      lines.push(`${indent}${humanize(key)}:`);
+      for (const item of value) {
+        lines.push(serializeItemData(item, indent + "  "));
+      }
+    } else if (isAttribute(value)) {
+      lines.push(`${indent}${humanize(key)}: ${formatValue(value.value)}`);
+    }
+  }
+  return lines.filter(Boolean).join("\n");
+}
+
+function serializeSelection(selection) {
+  const { data, guid, category } = selection;
+  const name = data?.Name?.value ?? category ?? "Elemento";
+  const header = [name, category ? `Categoria: ${category}` : null, guid ? `GUID: ${guid}` : null]
+    .filter(Boolean)
+    .join("\n");
+  return `${header}\n\n${serializeItemData(data)}`;
+}
+
+export default function PropertiesPanel({ selection, onIsolate }) {
+  const [copied, setCopied] = useState(false);
+
   if (!selection) {
     return (
       <div className="panel-empty">
@@ -86,8 +117,19 @@ export default function PropertiesPanel({ selection }) {
     );
   }
 
-  const { data, guid, category } = selection;
+  const { data, guid, category, modelId, localId } = selection;
   const name = data?.Name?.value ?? null;
+
+  async function handleCopy() {
+    const text = serializeSelection(selection);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard API unavailable (e.g. no permission) — ignore silently.
+    }
+  }
 
   return (
     <div className="properties-panel">
@@ -95,6 +137,20 @@ export default function PropertiesPanel({ selection }) {
         <div className="properties-title">{name ?? category ?? "Elemento"}</div>
         {category && <div className="properties-subtitle">{category}</div>}
         {guid && <div className="properties-guid">GUID: {guid}</div>}
+        <div className="properties-actions">
+          <button type="button" className="toolbar-button-secondary small" onClick={handleCopy}>
+            {copied ? "Copiato ✓" : "Copia proprietà"}
+          </button>
+          {onIsolate && (
+            <button
+              type="button"
+              className="toolbar-button-secondary small"
+              onClick={() => onIsolate(modelId, localId)}
+            >
+              Isola elemento
+            </button>
+          )}
+        </div>
       </div>
       <div className="properties-body">
         <ItemDataView data={data} />

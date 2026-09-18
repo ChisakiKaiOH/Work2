@@ -138,15 +138,19 @@
 .panel-tabs {
   display: flex;
   border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .panel-tab {
-  flex: 1;
-  padding: 10px 0;
+  flex: none;
+  padding: 10px 14px;
   background: none;
   border: none;
   color: var(--text-muted);
   font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
   cursor: pointer;
   border-bottom: 2px solid transparent;
 }
@@ -290,4 +294,144 @@
 .prop-group-body {
   padding-left: 14px;
   border-left: 1px solid var(--border);
+}
+
+.properties-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar-button-secondary.small {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Category browser */
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.category-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.category-row:active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.category-count {
+  color: var(--text-muted);
+  font-size: 12px;
+  flex: none;
+  margin-left: 10px;
+}
+
+/* Search panel */
+.search-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.search-result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.search-result-selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.search-result-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-result-category {
+  color: var(--text-muted);
+  font-size: 11px;
+  flex: none;
+}
+
+/* Model info */
+.model-info .prop-row {
+  font-size: 13px;
+}
+
+/* Floating 3D view controls */
+.view-controls {
+  position: absolute;
+  left: 10px;
+  top: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 4;
+}
+
+.view-btn {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-bg);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.view-btn:active {
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel-bg));
+}
+
+.view-controls-separator {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0;
 }

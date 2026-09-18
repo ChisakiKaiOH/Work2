@@ -13,7 +13,19 @@ property set, quantita').
 - **Seleziona** un oggetto toccandolo nella vista 3D, oppure dall'**albero
   della struttura spaziale** (Progetto > Sito > Edificio > Piano > Elementi).
 - **Consulta le proprieta'**: nome, GUID, categoria IFC, attributi e tutti i
-  property set (`Pset_...`) e quantita' collegati all'elemento selezionato.
+  property set (`Pset_...`) e quantita' collegati all'elemento selezionato;
+  un tocco copia tutte le proprieta' come testo.
+- **Sfoglia per categoria** (muri, porte, finestre, ...): tocca una categoria
+  per isolarla nella vista 3D e inquadrarla.
+- **Cerca per nome** un elemento nel modello e selezionalo direttamente dal
+  risultato.
+- **Isola** l'elemento selezionato (nascondi tutto il resto) e **mostra
+  tutto** per tornare alla vista completa.
+- **Viste rapide**: dall'alto, di fronte, assonometrica, adatta alla vista.
+- **Sezioni**: aggiungi un piano di sezione orizzontale o verticale per
+  vedere l'interno del modello, o rimuovili.
+- **Info modello**: nome del file, numero di elementi, dimensioni
+  complessive e conteggio per categoria.
 
 ## Stack tecnologico
 
@@ -75,6 +87,10 @@ cd android
   edificio, piano, elementi); alcuni nodi intermedi generati internamente da
   `getSpatialStructure()` senza categoria propria vengono automaticamente
   "appiattiti" per mostrare una gerarchia piu' leggibile.
+- La ricerca per nome e la vista "Categorie" escludono automaticamente le
+  entita' IFC non fisiche (property set, unita' di misura, relazioni, ...),
+  mostrando solo elementi spaziali/costruttivi.
+
 ## Branding
 
 Icona e splash screen sono generate da un unico logo vettoriale

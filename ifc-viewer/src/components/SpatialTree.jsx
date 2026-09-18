@@ -1,35 +1,5 @@
 import { useState } from "react";
-
-const CATEGORY_LABELS = {
-  IFCPROJECT: "Progetto",
-  IFCSITE: "Sito",
-  IFCBUILDING: "Edificio",
-  IFCBUILDINGSTOREY: "Piano",
-  IFCSPACE: "Spazio",
-  IFCWALL: "Muro",
-  IFCWALLSTANDARDCASE: "Muro",
-  IFCSLAB: "Solaio",
-  IFCDOOR: "Porta",
-  IFCWINDOW: "Finestra",
-  IFCCOLUMN: "Pilastro",
-  IFCBEAM: "Trave",
-  IFCROOF: "Tetto",
-  IFCSTAIR: "Scala",
-  IFCRAILING: "Ringhiera",
-  IFCCOVERING: "Rivestimento",
-  IFCCURTAINWALL: "Facciata continua",
-  IFCFURNISHINGELEMENT: "Arredo",
-  IFCMEMBER: "Elemento strutturale",
-  IFCPLATE: "Piastra",
-  IFCFOOTING: "Fondazione",
-};
-
-function formatCategory(category) {
-  if (!category) return "Elemento";
-  const known = CATEGORY_LABELS[category.toUpperCase()];
-  if (known) return known;
-  return category.replace(/^IFC/i, "");
-}
+import { formatCategoryLabel } from "./categoryLabels";
 
 // getSpatialStructure() interleaves two kinds of noise nodes with the real
 // spatial hierarchy: bare relation-edge wrappers (no category, single
@@ -92,7 +62,7 @@ function TreeNode({ node, depth, selectedLocalId, onSelect }) {
           disabled={!isSelectable}
           onClick={() => isSelectable && onSelect(node.localId)}
         >
-          {formatCategory(node.category)}
+          {formatCategoryLabel(node.category)}
         </button>
       </div>
       {hasChildren && open && (

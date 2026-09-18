@@ -52,13 +52,21 @@ export async function createViewer(container) {
     wasm: { path: "/wasm/", absolute: true },
   });
 
+  const hider = components.get(OBC.Hider);
+
+  const clipper = components.get(OBC.Clipper);
+  clipper.setup();
+
   return {
     components,
     world,
     fragments,
     ifcLoader,
+    hider,
+    clipper,
     models: new Map(), // modelId -> FragmentsModel
     selected: null, // { modelId, localId }
+    searchIndex: null, // built lazily per loaded model
   };
 }
 
@@ -66,6 +74,7 @@ export async function loadIfc(state, arrayBuffer, name) {
   const data = new Uint8Array(arrayBuffer);
   const model = await state.ifcLoader.load(data, true, name);
   state.models.set(model.modelId, model);
+  state.searchIndex = null;
   await state.world.camera.fitToItems();
   return model;
 }
@@ -124,12 +133,145 @@ export async function getSpatialTree(state, modelId) {
 
 export async function resetModels(state) {
   await clearSelection(state);
+  clearSections(state);
   for (const model of state.models.values()) {
     await model.dispose();
   }
   state.models.clear();
+  state.searchIndex = null;
 }
 
 export function disposeViewer(state) {
   state.components.dispose();
+}
+
+function getPrimaryModel(state) {
+  const [model] = state.models.values();
+  return model ?? null;
+}
+
+// --- Category browser (also backs search and the model info summary) --------
+
+// Administrative/definition entities (property sets, units, relationships,
+// history...) show up in getCategories() alongside real physical elements,
+// but isolating or searching for "PROPERTYSET" isn't useful in a viewer, so
+// they're filtered out here for both the category browser and search.
+const NON_SPATIAL_CATEGORY = /^IFC(PROPERTY|RELDEFINESBY|RELCONTAINEDIN|RELAGGREGATES|RELASSOCIATES|ELEMENTQUANTITY|QUANTITY|SIUNIT|UNITASSIGNMENT|CONVERSIONBASEDUNIT|OWNERHISTORY|PERSON|ORGANIZATION|APPLICATION|GEOMETRICREPRESENTATIONCONTEXT|MATERIAL|PRESENTATIONSTYLE|STYLEDITEM|CARTESIANPOINT|DIRECTION|AXIS2PLACEMENT|LOCALPLACEMENT)/i;
+
+export async function getCategoriesWithCounts(state, modelId) {
+  const model = state.models.get(modelId);
+  if (!model) return [];
+  const categories = await model.getCategories();
+  const itemsByCategory = await model.getItemsOfCategories(
+    categories.map((c) => new RegExp(`^${c}$`))
+  );
+  return Object.entries(itemsByCategory)
+    .map(([category, ids]) => ({ category, ids }))
+    .filter((c) => c.ids.length > 0 && !NON_SPATIAL_CATEGORY.test(c.category))
+    .sort((a, b) => a.category.localeCompare(b.category));
+}
+
+// --- Model info -----------------------------------------------------------
+
+export function getModelBoxSize(state, modelId) {
+  const model = state.models.get(modelId);
+  const box = model?.box;
+  if (!box) return null;
+  const size = box.getSize(new THREE.Vector3());
+  return { x: size.x, y: size.y, z: size.z };
+}
+
+// --- Visibility (isolate / show all) ----------------------------------------
+
+export async function isolateItems(state, modelId, localIds) {
+  await state.hider.isolate({ [modelId]: new Set(localIds) });
+}
+
+export async function showAllItems(state) {
+  await state.hider.set(true);
+}
+
+// --- Search ------------------------------------------------------------------
+
+async function ensureSearchIndex(state, modelId) {
+  if (state.searchIndex && state.searchIndex.modelId === modelId) {
+    return state.searchIndex;
+  }
+  const model = state.models.get(modelId);
+  if (!model) return null;
+  // Reuse the same category listing as the category browser (proven
+  // stable) rather than getItemsIdsWithGeometry(), which reproducibly wedges
+  // the fragments worker so later selections never resolve.
+  const categories = await getCategoriesWithCounts(state, modelId);
+  const ids = categories.flatMap((c) => c.ids);
+  const dataList = await model.getItemsData(ids, { attributesDefault: true });
+  const entries = ids.map((localId, i) => ({
+    localId,
+    name: dataList[i]?.Name?.value ?? null,
+    category: dataList[i]?._category?.value ?? null,
+  }));
+  state.searchIndex = { modelId, entries };
+  return state.searchIndex;
+}
+
+export async function searchItems(state, modelId, query) {
+  const index = await ensureSearchIndex(state, modelId);
+  if (!index) return [];
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return index.entries
+    .filter(
+      (e) =>
+        (e.name && e.name.toLowerCase().includes(q)) ||
+        (e.category && e.category.toLowerCase().includes(q))
+    )
+    .slice(0, 200);
+}
+
+// --- Camera view presets ------------------------------------------------------
+
+const VIEW_PRESETS = {
+  top: { azimuth: 0, polar: 0.01 },
+  front: { azimuth: 0, polar: Math.PI / 2 },
+  iso: { azimuth: Math.PI / 4, polar: Math.PI / 3 },
+};
+
+export async function setView(state, preset) {
+  const controls = state.world.camera.controls;
+  if (preset === "fit") {
+    await state.world.camera.fitToItems();
+    return;
+  }
+  const angles = VIEW_PRESETS[preset];
+  if (!angles) return;
+  await controls.rotateTo(angles.azimuth, angles.polar, true);
+  await state.world.camera.fitToItems();
+}
+
+// --- Section planes (clipping) ------------------------------------------------
+
+export function addSectionPlane(state, axis) {
+  const model = getPrimaryModel(state);
+  if (!model || !model.box) return;
+  const center = model.box.getCenter(new THREE.Vector3());
+  if (axis === "horizontal") {
+    state.clipper.createFromNormalAndCoplanarPoint(
+      state.world,
+      new THREE.Vector3(0, -1, 0),
+      center
+    );
+  } else {
+    const direction = state.world.camera.three.getWorldDirection(
+      new THREE.Vector3()
+    );
+    state.clipper.createFromNormalAndCoplanarPoint(
+      state.world,
+      direction,
+      center
+    );
+  }
+}
+
+export function clearSections(state) {
+  state.clipper.deleteAll();
 }
