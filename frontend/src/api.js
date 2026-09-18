@@ -5,11 +5,16 @@
 // fase di build (es. "http://192.168.1.50:4317/api") per puntare al PC che lo ospita.
 const BASE = import.meta.env.VITE_API_BASE || '/api';
 
-async function request(path, options) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
+// Se il backend e' esposto pubblicamente (vedi backend/src/index.js,
+// requireApiKey) con SHIE_API_KEY impostata, questa build deve conoscere lo
+// stesso valore per poter chiamare l'API: si passa in fase di build come
+// VITE_API_KEY, esattamente come VITE_API_BASE.
+const API_KEY = import.meta.env.VITE_API_KEY || '';
+
+async function request(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (API_KEY) headers['X-Api-Key'] = API_KEY;
+  const res = await fetch(`${BASE}${path}`, { ...options, headers });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Errore ${res.status}`);

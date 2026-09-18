@@ -11,15 +11,27 @@ import './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Se il backend e' esposto su internet (es. Fly.io) senza questa chiave
+// impostata, chiunque trovi l'URL potrebbe leggere/modificare i dati: quando
+// SHIE_API_KEY e' configurata, le richieste API devono includere lo stesso
+// valore nell'header X-Api-Key. In locale/demo (nessuna variabile impostata)
+// il comportamento resta invariato e aperto, com'era prima.
+function requireApiKey(req, res, next) {
+  const expected = process.env.SHIE_API_KEY;
+  if (!expected || req.get('X-Api-Key') === expected) return next();
+  res.status(401).json({ error: 'Chiave API mancante o non valida' });
+}
+
 export function createApp() {
   const app = express();
   app.use(cors());
   app.use(express.json());
 
+  app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+  app.use('/api', requireApiKey);
   app.use('/api/accounts', accountsRouter);
   app.use('/api/overview', overviewRouter);
-
-  app.get('/api/health', (req, res) => res.json({ ok: true }));
 
   // Se presente una build del frontend (frontend/dist), la serve dalla stessa
   // origine dell'API: comodo per l'installer Electron e per l'uso da rete

@@ -1,0 +1,54 @@
+name: Deploy Backend
+
+# Pubblica il backend (API + dashboard) su Fly.io cosi' resta raggiungibile
+# da internet 24/7, anche via dati mobili -- non solo dalla rete locale del
+# PC. Gira sui runner di GitHub perche' fly.io non e' raggiungibile
+# dall'ambiente di sviluppo remoto usato per questo progetto.
+#
+# Setup richiesto una tantum (vedi README, sezione "Backend pubblico su
+# Fly.io"): creare l'app e il volume su Fly.io, poi aggiungere il token come
+# secret di repository FLY_API_TOKEN (Settings -> Secrets and variables ->
+# Actions -> Secrets).
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'Dockerfile'
+      - 'fly.toml'
+      - '.github/workflows/deploy-backend.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency: deploy-backend-fly
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Check FLY_API_TOKEN is configured
+        run: |
+          if [ -z "${{ secrets.FLY_API_TOKEN }}" ]; then
+            echo "::error::Manca il secret FLY_API_TOKEN. Segui la sezione 'Backend pubblico su Fly.io' del README per crearlo, poi aggiungilo in Settings -> Secrets and variables -> Actions -> Secrets."
+            exit 1
+          fi
+
+      - name: Set runtime API key on Fly.io
+        if: ${{ secrets.SHIE_API_KEY != '' }}
+        run: flyctl secrets set "SHIE_API_KEY=${{ secrets.SHIE_API_KEY }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only --build-arg "VITE_API_KEY=${{ secrets.SHIE_API_KEY }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

@@ -1,0 +1,27 @@
+# Configurazione Fly.io per Shie Hassaikai Application.
+# "app" deve essere univoco su tutto Fly.io: se risulta gia' preso, cambialo
+# qui e nel comando `fly apps create` (vedi README).
+app = "shie-hassaikai-application"
+primary_region = "fra"
+
+[build]
+
+[env]
+  HOST = "0.0.0.0"
+  PORT = "8080"
+  SHIE_DATA_DIR = "/data"
+
+[[mounts]]
+  source = "shie_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

@@ -36,6 +36,56 @@ API.
 Richiede Node.js 18+ sulla macchina dove si costruisce l'app (non serve nulla
 di piu' su Windows una volta generato l'installer).
 
+## 0. Backend pubblico su Fly.io (per usare l'app anche fuori casa, in 4G/5G)
+
+L'app Android e' un pacchetto statico installato sul telefono: non ha un
+server locale, quindi deve contattare un backend raggiungibile da internet
+per funzionare anche quando il telefono non e' sulla stessa rete Wi-Fi del
+PC. Questo passaggio e' **necessario per l'uso in mobilita'**; se ti basta
+usarla in casa sulla stessa rete puoi saltarlo e andare direttamente alla
+sezione 2 ("Alternativa senza build").
+
+Il deploy gira su GitHub Actions (`.github/workflows/deploy-backend.yml`)
+perche' Fly.io non e' raggiungibile dall'ambiente di sviluppo remoto usato
+per questo progetto. Setup una tantum:
+
+1. Crea un account su [fly.io](https://fly.io) (richiede una carta per la
+   verifica, ma l'uso descritto qui resta nel piano gratuito Hobby).
+2. Installa `flyctl` sul tuo PC e accedi:
+   ```bash
+   curl -L https://fly.io/install.sh | sh   # Windows: iwr https://fly.io/install.ps1 -useb | iex
+   fly auth login
+   ```
+3. Dalla cartella del progetto (dove ci sono `Dockerfile` e `fly.toml`), crea
+   l'app e il volume persistente per il database (se il nome
+   `shie-hassaikai-application` risulta gia' preso da un altro utente Fly,
+   scegline uno univoco e aggiornalo anche in `fly.toml`, campo `app`):
+   ```bash
+   fly apps create shie-hassaikai-application
+   fly volumes create shie_data --region fra --size 1 -a shie-hassaikai-application
+   ```
+4. Genera un token di deploy e copialo:
+   ```bash
+   fly tokens create deploy -a shie-hassaikai-application
+   ```
+5. Su GitHub: **Settings -> Secrets and variables -> Actions -> Secrets ->
+   New repository secret**, crea:
+   - `FLY_API_TOKEN` = il token del passo precedente;
+   - `SHIE_API_KEY` = una password/chiave a scelta (es. generata con
+     `openssl rand -hex 20`). Protegge l'API pubblica: senza questa chiave
+     chiunque trovasse l'URL potrebbe leggere/modificare i tuoi dati. La
+     dashboard servita dallo stesso host la incorpora gia' in automatico; per
+     l'app Android nativa la useranno anche i comandi della sezione 2.
+6. Lancia il deploy da **Actions -> Deploy Backend -> Run workflow** (parte
+   anche da solo a ogni push che tocca `backend/**` o `frontend/**`).
+7. A deploy completato l'app e' su `https://shie-hassaikai-application.fly.dev`
+   (o il nome che hai scelto): apribile da qualunque browser, ovunque, e
+   installabile li' stesso come PWA (funziona anche in 4G/5G da subito, senza
+   bisogno dell'app nativa).
+
+Per aggiornare l'app pubblicata (nuove funzionalita', fix) basta ripetere il
+passo 6: il deploy e' idempotente e riusa lo stesso volume dati.
+
 ## 1. Windows - installer desktop nativo (consigliato)
 
 Genera un vero programma installabile per Windows (`.exe`, installer NSIS)
@@ -87,13 +137,21 @@ prima di generare l'installer definitivo.
 Non serve installare Android Studio da nessuna parte: il workflow
 `.github/workflows/android-apk.yml` compila l'APK sui runner di GitHub.
 
-1. (Opzionale ma consigliato) imposta l'indirizzo del backend che l'app deve
-   contattare: **Settings -> Secrets and variables -> Actions -> Variables**,
-   crea `ANDROID_API_BASE` con valore `http://<ip-del-pc>:4000/api` (l'IP a
-   cui il telefono raggiunge il PC che fa da server). Senza questa variabile
-   l'app compilata usera' `/api` relativo, che funziona solo se l'app viene
-   servita dalla stessa origine del backend (non e' il caso tipico su
-   Android).
+1. Imposta l'indirizzo del backend che l'app deve contattare: **Settings ->
+   Secrets and variables -> Actions -> Variables**, crea `ANDROID_API_BASE`
+   con valore:
+   - `https://shie-hassaikai-application.fly.dev/api` (o il tuo nome scelto)
+     se hai fatto il deploy pubblico della sezione 0 -- **funziona ovunque,
+     anche in 4G/5G**;
+   - oppure `http://<ip-del-pc>:4000/api` se preferisci usare solo il PC di
+     casa come server (funziona solo quando telefono e PC sono sulla stessa
+     rete Wi-Fi, vedi "Alternativa senza build" piu' sotto).
+
+   Se hai impostato anche il secret `SHIE_API_KEY` nella sezione 0, l'APK la
+   user automaticamente (il workflow la legge da li'): non serve
+   configurare altro. Senza questa variabile l'app compilata usera' `/api`
+   relativo, che non funziona su Android (non c'e' un server locale sul
+   telefono).
 2. Il workflow parte da solo a ogni push che tocca `frontend/**`, oppure
    lancialo a mano da **Actions -> Build Android APK -> Run workflow** (li'
    puoi anche passare un indirizzo diverso una tantum, senza toccare la
@@ -111,7 +169,7 @@ In alternativa, se hai Android Studio / SDK sulla tua macchina:
 ```bash
 cd frontend
 npm install
-VITE_API_BASE="http://<ip-del-pc>:4000/api" npm run android:sync
+VITE_API_BASE="https://shie-hassaikai-application.fly.dev/api" VITE_API_KEY="<il-tuo-SHIE_API_KEY>" npm run android:sync
 npm run android:open   # apre il progetto in Android Studio
 ```
 
@@ -126,15 +184,15 @@ cd frontend/android
 
 ### Alternativa senza build: PWA dal browser
 
-Se il telefono e il PC (che fa da server) sono sulla stessa rete Wi-Fi, non
-serve compilare nulla:
+Non serve compilare nulla:
 
-1. Avvia il backend sul PC come sopra (`npm start` in `backend/`, con
-   `frontend/dist` gia' buildato).
-2. Trova l'IP locale del PC (es. `192.168.1.x`).
-3. Sul telefono, apri Chrome su `http://<ip-del-pc>:4000`.
-4. Menu Chrome -> "Installa app" (o "Aggiungi a schermata Home"): l'app
-   compare come icona a se stante, a schermo intero.
+- **Ovunque, anche in 4G/5G** (richiede il deploy della sezione 0): apri
+  `https://shie-hassaikai-application.fly.dev` in Chrome sul telefono e usa
+  "Installa app" (o "Aggiungi a schermata Home").
+- **Solo in casa, stessa rete Wi-Fi del PC**: avvia il backend sul PC
+  (`npm start` in `backend/`, con `frontend/dist` gia' buildato), trova l'IP
+  locale del PC (es. `192.168.1.x`) e apri `http://<ip-del-pc>:4000` in
+  Chrome sul telefono, poi "Installa app".
 
 ## Uso della dashboard
 

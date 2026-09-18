@@ -74,6 +74,10 @@ jobs:
           # il backend gira sulla stessa origine, non e' il caso tipico su
           # Android).
           VITE_API_BASE: ${{ inputs.api_base || vars.ANDROID_API_BASE }}
+          # Se il backend pubblico su Fly.io e' protetto da SHIE_API_KEY (vedi
+          # deploy-backend.yml), l'app nativa deve incorporare la stessa
+          # chiave per poter chiamare l'API.
+          VITE_API_KEY: ${{ secrets.SHIE_API_KEY }}
         run: npm run build
 
       - name: Sync Capacitor Android project
