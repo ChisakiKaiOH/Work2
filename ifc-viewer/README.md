@@ -48,6 +48,18 @@ property set, quantita').
 - **Impostazioni**: tema (sistema/chiaro/scuro), unità di misura (metri/
   piedi, usata da Misura e Info modello) e colore di evidenziazione della
   selezione — tutte salvate sul dispositivo.
+- **Proietta su un altro dispositivo**: trasmette la vista 3D in tempo reale
+  a un altro dispositivo sulla stessa rete Wi-Fi (un monitor/PC con browser,
+  o un altro telefono con l'app), senza bisogno di internet né di un
+  server: i due dispositivi si accoppiano scambiandosi un breve codice
+  (via copia/incolla o tramite il pannello di condivisione), poi la vista
+  resta sincronizzata via WebRTC diretto punto a punto.
+- **Esporta e invia via email**: sia dal pannello Proprietà (l'elemento
+  selezionato) sia dal pannello Info (report completo del modello: file,
+  conteggio elementi, categorie, piani), "Esporta" scarica un file di
+  testo, "Invia email" lo condivide tramite il pannello di condivisione di
+  Android (per allegarlo direttamente in Gmail/Outlook/etc.) o, in
+  mancanza, apre un'email con il contenuto nel corpo del messaggio.
 
 ## Stack tecnologico
 
@@ -118,6 +130,16 @@ cd android
 - "Condividi" usa la Web Share API del browser/WebView: se il dispositivo o
   la build non la supportano, l'app scarica lo screenshot al posto di
   aprire il pannello di condivisione.
+- "Proietta su un altro dispositivo" usa WebRTC diretto (nessun server):
+  richiede che i due dispositivi siano sulla stessa rete locale (stesso
+  Wi-Fi, o hotspot di uno dei due) e che entrambi supportino WebRTC. Con
+  reti che isolano i dispositivi tra loro (isolamento AP, alcune reti
+  aziendali/ospiti) l'accoppiamento può non riuscire.
+- "Invia email" allega il file solo quando il dispositivo supporta la
+  condivisione di file (Web Share API con `files`); altrimenti scarica il
+  report e apre un'email con il testo nel corpo (troncato per i limiti di
+  lunghezza di alcuni client email), da completare allegando manualmente
+  il file scaricato.
 
 ## Branding
 

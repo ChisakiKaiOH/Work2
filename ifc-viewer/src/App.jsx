@@ -8,6 +8,7 @@ import ModelInfoPanel from "./components/ModelInfoPanel";
 import ViewControls from "./components/ViewControls";
 import FloorsPanel from "./components/FloorsPanel";
 import SettingsPanel from "./components/SettingsPanel";
+import CastPanel from "./components/CastPanel";
 import { loadSettings, saveSettings, applyTheme, formatLength } from "./settings";
 import { cacheLastFile, getLastFile, clearLastFile } from "./fileCache";
 import {
@@ -38,6 +39,7 @@ import {
   isolateStorey,
   setSelectColor,
   findAncestorPath,
+  getViewerCanvas,
 } from "./ifc/viewer";
 import "./App.css";
 
@@ -352,6 +354,11 @@ export default function App() {
     setPlanMode(true);
   }
 
+  function handleGetCanvas() {
+    const viewer = viewerRef.current;
+    return viewer ? getViewerCanvas(viewer) : null;
+  }
+
   async function handleExitPlan() {
     const viewer = viewerRef.current;
     if (!viewer) return;
@@ -483,6 +490,7 @@ export default function App() {
               ["search", "Cerca"],
               ["properties", "Proprietà"],
               ["info", "Info"],
+              ["cast", "Proietta"],
               ["settings", "Impostazioni"],
             ].map(([key, label]) => (
               <button
@@ -538,8 +546,10 @@ export default function App() {
                 categories={categories}
                 size={modelSize}
                 units={settings.units}
+                floors={floors}
               />
             )}
+            {activeTab === "cast" && <CastPanel getCanvas={handleGetCanvas} />}
             {activeTab === "settings" && (
               <SettingsPanel settings={settings} onChange={handleChangeSettings} />
             )}

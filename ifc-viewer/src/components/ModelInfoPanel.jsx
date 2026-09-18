@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { formatCategoryLabel } from "./categoryLabels";
 import { formatLength } from "../settings";
+import { buildModelReport, downloadReport, sendReportByEmail } from "../export";
 
-export default function ModelInfoPanel({ fileName, categories, size, units }) {
+export default function ModelInfoPanel({ fileName, categories, size, units, floors }) {
+  const [emailStatus, setEmailStatus] = useState(null);
+
   if (!fileName) {
     return <div className="panel-empty">Apri un file IFC per vedere le informazioni del modello.</div>;
   }
@@ -11,8 +15,28 @@ export default function ModelInfoPanel({ fileName, categories, size, units }) {
     .sort((a, b) => b.ids.length - a.ids.length)
     .slice(0, 8);
 
+  function handleExport() {
+    const text = buildModelReport({ fileName, categories, size, units, floors });
+    downloadReport(`${fileName}-report.txt`, text);
+  }
+
+  async function handleSendEmail() {
+    const text = buildModelReport({ fileName, categories, size, units, floors });
+    await sendReportByEmail(`${fileName}-report.txt`, text, `IFC Reader - Report ${fileName}`);
+    setEmailStatus("Inviato");
+    setTimeout(() => setEmailStatus(null), 1500);
+  }
+
   return (
     <div className="model-info">
+      <div className="properties-actions">
+        <button type="button" className="toolbar-button-secondary small" onClick={handleExport}>
+          Esporta report
+        </button>
+        <button type="button" className="toolbar-button-secondary small" onClick={handleSendEmail}>
+          {emailStatus ?? "Invia email"}
+        </button>
+      </div>
       <div className="prop-row">
         <span className="prop-name">File</span>
         <span className="prop-value">{fileName}</span>

@@ -399,6 +399,12 @@ export function captureScreenshot(state) {
   return canvas.toDataURL("image/png");
 }
 
+// --- Network projection (cast) ------------------------------------------------
+
+export function getViewerCanvas(state) {
+  return state.world.renderer.three.domElement;
+}
+
 // --- Measurement -------------------------------------------------------------
 
 export function startMeasurement(state) {

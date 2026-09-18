@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { formatCategoryLabel } from "./categoryLabels";
-
-function humanize(name) {
-  return name.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
-}
+import { humanize, isAttribute, serializeSelection, downloadReport, sendReportByEmail } from "../export";
 
 function formatValue(value) {
   if (value === null || value === undefined || value === "") return "—";
@@ -12,15 +9,6 @@ function formatValue(value) {
     return Number.isInteger(value) ? String(value) : value.toFixed(3);
   }
   return String(value);
-}
-
-function isAttribute(value) {
-  return (
-    value &&
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    "value" in value
-  );
 }
 
 function AttributeRow({ name, attr }) {
@@ -78,37 +66,9 @@ function ItemDataView({ data }) {
   );
 }
 
-function serializeItemData(data, indent = "") {
-  if (!data || typeof data !== "object") return "";
-  let lines = [];
-  const label = data.Name?.value ?? data.NominalValue?.value ?? null;
-  if (label != null) lines.push(`${indent}${label}`);
-  for (const [key, value] of Object.entries(data)) {
-    if (HIDDEN_KEYS.has(key)) continue;
-    if (Array.isArray(value)) {
-      if (!value.length) continue;
-      lines.push(`${indent}${humanize(key)}:`);
-      for (const item of value) {
-        lines.push(serializeItemData(item, indent + "  "));
-      }
-    } else if (isAttribute(value)) {
-      lines.push(`${indent}${humanize(key)}: ${formatValue(value.value)}`);
-    }
-  }
-  return lines.filter(Boolean).join("\n");
-}
-
-function serializeSelection(selection) {
-  const { data, guid, category } = selection;
-  const name = data?.Name?.value ?? category ?? "Elemento";
-  const header = [name, category ? `Categoria: ${category}` : null, guid ? `GUID: ${guid}` : null]
-    .filter(Boolean)
-    .join("\n");
-  return `${header}\n\n${serializeItemData(data)}`;
-}
-
 export default function PropertiesPanel({ selection, onIsolate, path }) {
   const [copied, setCopied] = useState(false);
+  const [emailStatus, setEmailStatus] = useState(null);
 
   if (!selection) {
     return (
@@ -132,6 +92,19 @@ export default function PropertiesPanel({ selection, onIsolate, path }) {
     }
   }
 
+  function handleExport() {
+    const text = serializeSelection(selection);
+    downloadReport(`${name ?? category ?? "elemento"}.txt`, text);
+  }
+
+  async function handleSendEmail() {
+    const text = serializeSelection(selection);
+    const subject = `IFC Reader - ${name ?? category ?? "Elemento"}`;
+    await sendReportByEmail(`${name ?? category ?? "elemento"}.txt`, text, subject);
+    setEmailStatus("Inviato");
+    setTimeout(() => setEmailStatus(null), 1500);
+  }
+
   return (
     <div className="properties-panel">
       <div className="properties-header">
@@ -146,6 +119,12 @@ export default function PropertiesPanel({ selection, onIsolate, path }) {
         <div className="properties-actions">
           <button type="button" className="toolbar-button-secondary small" onClick={handleCopy}>
             {copied ? "Copiato ✓" : "Copia proprietà"}
+          </button>
+          <button type="button" className="toolbar-button-secondary small" onClick={handleExport}>
+            Esporta
+          </button>
+          <button type="button" className="toolbar-button-secondary small" onClick={handleSendEmail}>
+            {emailStatus ?? "Invia email"}
           </button>
           {onIsolate && (
             <button
