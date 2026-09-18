@@ -13,7 +13,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #14171a;
     --panel-bg: #1c2024;
     --border: #33383e;
@@ -24,6 +24,19 @@
     --danger-bg: #3a1f1e;
     --danger-text: #ff8983;
   }
+}
+
+/* Manual theme override (Impostazioni > Tema), independent of system preference. */
+:root[data-theme="dark"] {
+  --bg: #14171a;
+  --panel-bg: #1c2024;
+  --border: #33383e;
+  --text: #e7e9ea;
+  --text-muted: #9aa4ae;
+  --accent: #4d8dff;
+  --accent-contrast: #0b0f14;
+  --danger-bg: #3a1f1e;
+  --danger-text: #ff8983;
 }
 
 * {

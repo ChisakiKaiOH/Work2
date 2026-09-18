@@ -7,6 +7,9 @@ import SearchPanel from "./components/SearchPanel";
 import ModelInfoPanel from "./components/ModelInfoPanel";
 import ViewControls from "./components/ViewControls";
 import FloorsPanel from "./components/FloorsPanel";
+import SettingsPanel from "./components/SettingsPanel";
+import { loadSettings, saveSettings, applyTheme, formatLength } from "./settings";
+import { cacheLastFile, getLastFile, clearLastFile } from "./fileCache";
 import {
   createViewer,
   loadIfc,
@@ -33,6 +36,8 @@ import {
   setPlanView,
   getStoreys,
   isolateStorey,
+  setSelectColor,
+  findAncestorPath,
 } from "./ifc/viewer";
 import "./App.css";
 
@@ -70,6 +75,9 @@ export default function App() {
   const [measureStatus, setMeasureStatus] = useState(null);
   const [floors, setFloors] = useState(null);
   const [planMode, setPlanMode] = useState(false);
+  const [settings, setSettings] = useState(loadSettings);
+  const [resumeFile, setResumeFile] = useState(null);
+  const [uiHidden, setUiHidden] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,6 +90,7 @@ export default function App() {
       }
       viewer = created;
       viewerRef.current = created;
+      setSelectColor(created, settings.selectColor);
       setReady(true);
     })();
     return () => {
@@ -91,9 +100,33 @@ export default function App() {
         viewerRef.current = null;
       }
     };
+    // Only ever run once: settings.selectColor read here is just the
+    // startup value, later changes are applied by handleChangeSettings.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleOpenFile(file) {
+  useEffect(() => {
+    applyTheme(settings.theme);
+  }, [settings.theme]);
+
+  useEffect(() => {
+    getLastFile().then((cached) => {
+      if (cached) setResumeFile(cached);
+    });
+  }, []);
+
+  function handleChangeSettings(partial) {
+    setSettings((prev) => {
+      const next = { ...prev, ...partial };
+      saveSettings(next);
+      return next;
+    });
+    if (partial.selectColor && viewerRef.current) {
+      setSelectColor(viewerRef.current, partial.selectColor);
+    }
+  }
+
+  async function loadBuffer(name, buffer) {
     const viewer = viewerRef.current;
     if (!viewer) return;
     setLoading(true);
@@ -109,8 +142,7 @@ export default function App() {
     setPlanMode(false);
     try {
       await resetModels(viewer);
-      const buffer = await file.arrayBuffer();
-      const model = await loadIfc(viewer, buffer, file.name);
+      const model = await loadIfc(viewer, buffer, name);
       currentModelIdRef.current = model.modelId;
       const [spatialTree, modelCategories] = await Promise.all([
         getSpatialTree(viewer, model.modelId),
@@ -120,9 +152,11 @@ export default function App() {
       setCategories(modelCategories);
       setModelSize(getModelBoxSize(viewer, model.modelId));
       setFloors(await getStoreys(viewer, model.modelId, spatialTree));
-      setFileName(file.name);
+      setFileName(name);
       setPanelOpen(true);
       setActiveTab("tree");
+      setResumeFile(null);
+      cacheLastFile(name, buffer);
     } catch (err) {
       console.error(err);
       setError(
@@ -131,6 +165,21 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleOpenFile(file) {
+    const buffer = await file.arrayBuffer();
+    await loadBuffer(file.name, buffer);
+  }
+
+  async function handleResumeFile() {
+    if (!resumeFile) return;
+    await loadBuffer(resumeFile.name, resumeFile.data);
+  }
+
+  function handleDismissResume() {
+    setResumeFile(null);
+    clearLastFile();
   }
 
   async function handlePick(modelId, localId) {
@@ -256,6 +305,38 @@ export default function App() {
     downloadDataUrl(dataUrl, `ifc-screenshot-${Date.now()}.png`);
   }
 
+  async function handleShareScreenshot() {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    const dataUrl = captureScreenshot(viewer);
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const file = new File([blob], `ifc-screenshot-${Date.now()}.png`, {
+      type: "image/png",
+    });
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "Screenshot IFC" });
+        return;
+      } catch {
+        // user cancelled the share sheet, or it failed — fall back below.
+      }
+    }
+    downloadDataUrl(dataUrl, file.name);
+  }
+
+  async function handleToggleFullscreen() {
+    const next = !uiHidden;
+    setUiHidden(next);
+    try {
+      if (next) await document.documentElement.requestFullscreen?.();
+      else if (document.fullscreenElement) await document.exitFullscreen?.();
+    } catch {
+      // Fullscreen API refused (no user-gesture context, unsupported, ...);
+      // the CSS-level UI hiding above still gives an immersive view.
+    }
+  }
+
   async function handleTogglePlan(enabled) {
     const viewer = viewerRef.current;
     if (!viewer) return;
@@ -305,7 +386,7 @@ export default function App() {
       if (!result) {
         setMeasureStatus("Nessun punto sotto il tocco: riprova sul modello");
       } else if (result.done) {
-        setMeasureStatus(`Distanza: ${result.distance.toFixed(3)} m`);
+        setMeasureStatus(`Distanza: ${formatLength(result.distance, settings.units)}`);
       } else {
         setMeasureStatus("Tocca il secondo punto");
       }
@@ -321,15 +402,20 @@ export default function App() {
     }
   }
 
+  const breadcrumb = selection ? findAncestorPath(tree, selection.localId) : [];
+
   return (
     <div className="app">
-      <Toolbar
-        fileName={fileName}
-        loading={loading}
-        onOpenFile={handleOpenFile}
-        panelOpen={panelOpen}
-        onTogglePanel={() => setPanelOpen((v) => !v)}
-      />
+      {!uiHidden && (
+        <Toolbar
+          fileName={fileName}
+          loading={loading}
+          onOpenFile={handleOpenFile}
+          panelOpen={panelOpen}
+          onTogglePanel={() => setPanelOpen((v) => !v)}
+          onToggleFullscreen={handleToggleFullscreen}
+        />
+      )}
       <div className="viewer-area">
         <div
           ref={containerRef}
@@ -338,13 +424,36 @@ export default function App() {
           onPointerUp={handlePointerUp}
         />
         {!ready && <div className="viewer-loading">Inizializzazione motore 3D…</div>}
-        {!fileName && ready && (
+        {!fileName && ready && !resumeFile && (
           <div className="viewer-hint">
             Apri un file .ifc per iniziare la navigazione del modello
           </div>
         )}
+        {!fileName && ready && resumeFile && (
+          <div className="viewer-hint viewer-hint-resume">
+            <button type="button" className="toolbar-button small" onClick={handleResumeFile}>
+              Riprendi "{resumeFile.name}"
+            </button>
+            <button
+              type="button"
+              className="toolbar-button-secondary small"
+              onClick={handleDismissResume}
+            >
+              ✕
+            </button>
+          </div>
+        )}
         {error && <div className="viewer-error">{error}</div>}
         {measureStatus && <div className="measure-status">{measureStatus}</div>}
+        {uiHidden && (
+          <button
+            type="button"
+            className="fullscreen-exit-btn"
+            onClick={handleToggleFullscreen}
+          >
+            Esci da schermo intero
+          </button>
+        )}
         <ViewControls
           visible={ready && !!fileName}
           onView={handleView}
@@ -359,11 +468,12 @@ export default function App() {
           onToggleMeasure={handleToggleMeasure}
           onClearMeasurements={handleClearMeasurements}
           onScreenshot={handleScreenshot}
+          onShare={handleShareScreenshot}
           planMode={planMode}
           onTogglePlan={handleTogglePlan}
         />
       </div>
-      {panelOpen && (
+      {panelOpen && !uiHidden && (
         <aside className="side-panel">
           <div className="panel-tabs">
             {[
@@ -373,6 +483,7 @@ export default function App() {
               ["search", "Cerca"],
               ["properties", "Proprietà"],
               ["info", "Info"],
+              ["settings", "Impostazioni"],
             ].map(([key, label]) => (
               <button
                 key={key}
@@ -415,10 +526,22 @@ export default function App() {
               />
             )}
             {activeTab === "properties" && (
-              <PropertiesPanel selection={selection} onIsolate={handleIsolateSelection} />
+              <PropertiesPanel
+                selection={selection}
+                onIsolate={handleIsolateSelection}
+                path={breadcrumb}
+              />
             )}
             {activeTab === "info" && (
-              <ModelInfoPanel fileName={fileName} categories={categories} size={modelSize} />
+              <ModelInfoPanel
+                fileName={fileName}
+                categories={categories}
+                size={modelSize}
+                units={settings.units}
+              />
+            )}
+            {activeTab === "settings" && (
+              <SettingsPanel settings={settings} onChange={handleChangeSettings} />
             )}
           </div>
         </aside>

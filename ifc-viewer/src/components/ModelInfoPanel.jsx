@@ -1,11 +1,7 @@
 import { formatCategoryLabel } from "./categoryLabels";
+import { formatLength } from "../settings";
 
-function formatLength(meters) {
-  if (meters == null) return "—";
-  return `${meters.toFixed(2)} m`;
-}
-
-export default function ModelInfoPanel({ fileName, categories, size }) {
+export default function ModelInfoPanel({ fileName, categories, size, units }) {
   if (!fileName) {
     return <div className="panel-empty">Apri un file IFC per vedere le informazioni del modello.</div>;
   }
@@ -34,7 +30,8 @@ export default function ModelInfoPanel({ fileName, categories, size }) {
           <div className="prop-row">
             <span className="prop-name">Dimensioni (L × P × H)</span>
             <span className="prop-value">
-              {formatLength(size.x)} × {formatLength(size.z)} × {formatLength(size.y)}
+              {formatLength(size.x, units)} × {formatLength(size.z, units)} ×{" "}
+              {formatLength(size.y, units)}
             </span>
           </div>
         </>

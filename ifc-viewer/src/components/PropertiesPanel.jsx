@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatCategoryLabel } from "./categoryLabels";
 
 function humanize(name) {
   return name.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
@@ -106,7 +107,7 @@ function serializeSelection(selection) {
   return `${header}\n\n${serializeItemData(data)}`;
 }
 
-export default function PropertiesPanel({ selection, onIsolate }) {
+export default function PropertiesPanel({ selection, onIsolate, path }) {
   const [copied, setCopied] = useState(false);
 
   if (!selection) {
@@ -134,6 +135,11 @@ export default function PropertiesPanel({ selection, onIsolate }) {
   return (
     <div className="properties-panel">
       <div className="properties-header">
+        {path && path.length > 0 && (
+          <div className="properties-breadcrumb">
+            {path.map(formatCategoryLabel).join(" › ")}
+          </div>
+        )}
         <div className="properties-title">{name ?? category ?? "Elemento"}</div>
         {category && <div className="properties-subtitle">{category}</div>}
         {guid && <div className="properties-guid">GUID: {guid}</div>}

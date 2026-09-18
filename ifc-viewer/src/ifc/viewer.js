@@ -1,12 +1,14 @@
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 
-const SELECT_MATERIAL = {
-  color: new THREE.Color("#ff9800"),
-  renderedFaces: 0, // RenderedFaces.ONE
-  opacity: 1,
-  transparent: false,
-};
+function selectMaterial(color) {
+  return {
+    color: new THREE.Color(color),
+    renderedFaces: 0, // RenderedFaces.ONE
+    opacity: 1,
+    transparent: false,
+  };
+}
 
 // Attributes/relations pulled for the properties panel: built-in attributes
 // plus property sets (IsDefinedBy -> HasProperties) and quantity sets.
@@ -72,6 +74,7 @@ export async function createViewer(container) {
     renderStyle: "shaded",
     measurement: { points: [], lines: [] },
     planMode: false,
+    selectColor: "#ff9800",
   };
 }
 
@@ -99,10 +102,14 @@ export async function pickAtPointer(state, event) {
   return { modelId: result.fragments.modelId, localId: result.localId };
 }
 
+export function setSelectColor(state, color) {
+  state.selectColor = color;
+}
+
 export async function selectItem(state, modelId, localId) {
   await clearSelection(state);
   const items = { [modelId]: new Set([localId]) };
-  await state.fragments.highlight(SELECT_MATERIAL, items);
+  await state.fragments.highlight(selectMaterial(state.selectColor), items);
   state.selected = { modelId, localId };
   return getItemProperties(state, modelId, localId);
 }
@@ -134,6 +141,64 @@ export async function getSpatialTree(state, modelId) {
   const model = state.models.get(modelId);
   if (!model) return null;
   return model.getSpatialStructure();
+}
+
+// getSpatialStructure() interleaves two kinds of noise nodes with the real
+// spatial hierarchy: bare relation-edge wrappers (no category, single
+// child) and type-bucket labels (a category but no localId) wrapping their
+// single concrete instance (no category, a real localId). Collapse both so
+// the tree reads as a clean Project > Site > Building > Storey > Element
+// hierarchy, and let leaf instances inherit their bucket's category label
+// when a bucket groups more than one of them. Shared by the tree UI and by
+// findAncestorPath below.
+export function simplifySpatialTree(node, inheritedCategory = null) {
+  if (!node) return node;
+  let current = node;
+  while (current.children && current.children.length === 1) {
+    const child = current.children[0];
+    if (current.category == null) {
+      current = child;
+      continue;
+    }
+    if (current.localId == null && child.category == null) {
+      current = {
+        category: current.category,
+        localId: child.localId,
+        children: child.children,
+      };
+      continue;
+    }
+    break;
+  }
+  const category = current.category ?? inheritedCategory;
+  return {
+    ...current,
+    category,
+    children: (current.children || []).map((c) => simplifySpatialTree(c, category)),
+  };
+}
+
+// Walks the (simplified) spatial tree down to the target local id and
+// returns the chain of ancestor categories above it (e.g. ["IFCPROJECT",
+// "IFCSITE", "IFCBUILDING", "IFCBUILDINGSTOREY"]) — not including the
+// target itself — for a breadcrumb in the properties panel.
+export function findAncestorPath(tree, targetLocalId) {
+  if (!tree || targetLocalId == null) return [];
+  const simplified = simplifySpatialTree(tree);
+  const path = [];
+  function walk(node, ancestors) {
+    if (node.localId === targetLocalId) {
+      path.push(...ancestors);
+      return true;
+    }
+    const nextAncestors = node.category != null ? [...ancestors, node.category] : ancestors;
+    for (const child of node.children || []) {
+      if (walk(child, nextAncestors)) return true;
+    }
+    return false;
+  }
+  walk(simplified, []);
+  return path;
 }
 
 export async function resetModels(state) {

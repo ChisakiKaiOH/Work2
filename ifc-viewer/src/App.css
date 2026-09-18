@@ -97,6 +97,29 @@
   pointer-events: none;
 }
 
+.viewer-hint-resume {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fullscreen-exit-btn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 6;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-bg);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
 .viewer-error {
   position: absolute;
   left: 50%;
@@ -303,10 +326,23 @@
   flex-wrap: wrap;
 }
 
-.toolbar-button-secondary.small {
+.toolbar-button-secondary.small,
+.toolbar-button.small {
   padding: 6px 10px;
   font-size: 12px;
   font-weight: 600;
+}
+
+.toolbar-button-secondary.active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+}
+
+.properties-breadcrumb {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
 }
 
 /* Category browser */
@@ -463,4 +499,45 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   z-index: 4;
   white-space: nowrap;
+}
+
+/* Settings panel */
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.settings-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+}
+
+.settings-note {
+  font-size: 12px;
+  color: var(--text-muted);
 }

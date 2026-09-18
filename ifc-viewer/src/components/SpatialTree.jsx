@@ -1,39 +1,6 @@
 import { useState } from "react";
 import { formatCategoryLabel } from "./categoryLabels";
-
-// getSpatialStructure() interleaves two kinds of noise nodes with the real
-// spatial hierarchy: bare relation-edge wrappers (no category, single
-// child) and type-bucket labels (a category but no localId) wrapping their
-// single concrete instance (no category, a real localId). Collapse both so
-// the tree reads as a clean Project > Site > Building > Storey > Element
-// hierarchy, and let leaf instances inherit their bucket's category label
-// when a bucket groups more than one of them.
-function simplify(node, inheritedCategory = null) {
-  if (!node) return node;
-  let current = node;
-  while (current.children && current.children.length === 1) {
-    const child = current.children[0];
-    if (current.category == null) {
-      current = child;
-      continue;
-    }
-    if (current.localId == null && child.category == null) {
-      current = {
-        category: current.category,
-        localId: child.localId,
-        children: child.children,
-      };
-      continue;
-    }
-    break;
-  }
-  const category = current.category ?? inheritedCategory;
-  return {
-    ...current,
-    category,
-    children: (current.children || []).map((c) => simplify(c, category)),
-  };
-}
+import { simplifySpatialTree } from "../ifc/viewer";
 
 function TreeNode({ node, depth, selectedLocalId, onSelect }) {
   const [open, setOpen] = useState(depth < 4);
@@ -86,7 +53,7 @@ export default function SpatialTree({ tree, selectedLocalId, onSelect }) {
   if (!tree) {
     return <div className="panel-empty">Apri un file IFC per esplorare la struttura.</div>;
   }
-  const simplified = simplify(tree);
+  const simplified = simplifySpatialTree(tree);
   return (
     <div className="spatial-tree">
       <TreeNode node={simplified} depth={0} selectedLocalId={selectedLocalId} onSelect={onSelect} />

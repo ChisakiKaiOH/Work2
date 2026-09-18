@@ -4,6 +4,7 @@ export default function Toolbar({
   onOpenFile,
   panelOpen,
   onTogglePanel,
+  onToggleFullscreen,
 }) {
   return (
     <header className="toolbar">
@@ -32,6 +33,14 @@ export default function Toolbar({
           onClick={onTogglePanel}
         >
           {panelOpen ? "Chiudi pannello" : "Struttura / Proprietà"}
+        </button>
+        <button
+          type="button"
+          className="toolbar-button toolbar-button-secondary"
+          onClick={onToggleFullscreen}
+          title="Schermo intero"
+        >
+          ⤢
         </button>
       </div>
     </header>

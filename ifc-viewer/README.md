@@ -36,6 +36,18 @@ property set, quantita').
 - **Piani**: elenco dei piani (`IfcBuildingStorey`) del modello, ordinati per
   quota; tocca un piano per isolarlo e passare automaticamente alla vista in
   pianta di quel livello.
+- **Percorso struttura**: il pannello proprietà mostra il percorso
+  gerarchico dell'elemento selezionato (Progetto › Sito › Edificio › Piano).
+- **Condividi**: invia lo screenshot corrente tramite il pannello di
+  condivisione di Android (o lo scarica, se la condivisione non è
+  disponibile).
+- **Schermo intero**: nasconde barra e pannello per una vista 3D immersiva.
+- **Riprendi l'ultimo file**: l'ultimo file IFC aperto resta in cache sul
+  dispositivo; alla riapertura dell'app un pulsante permette di riaprirlo
+  senza dover navigare di nuovo nelle cartelle.
+- **Impostazioni**: tema (sistema/chiaro/scuro), unità di misura (metri/
+  piedi, usata da Misura e Info modello) e colore di evidenziazione della
+  selezione — tutte salvate sul dispositivo.
 
 ## Stack tecnologico
 
@@ -100,6 +112,12 @@ cd android
 - La ricerca per nome e la vista "Categorie" escludono automaticamente le
   entita' IFC non fisiche (property set, unita' di misura, relazioni, ...),
   mostrando solo elementi spaziali/costruttivi.
+- Il file per "Riprendi l'ultimo file" resta salvato in locale (IndexedDB)
+  finche' non se ne apre un altro o non si tocca la "✕" sul suggerimento; non
+  viene mai inviato altrove.
+- "Condividi" usa la Web Share API del browser/WebView: se il dispositivo o
+  la build non la supportano, l'app scarica lo screenshot al posto di
+  aprire il pannello di condivisione.
 
 ## Branding
 

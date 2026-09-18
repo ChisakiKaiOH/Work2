@@ -18,6 +18,7 @@ export default function ViewControls({
   onToggleMeasure,
   onClearMeasurements,
   onScreenshot,
+  onShare,
   planMode,
   onTogglePlan,
 }) {
@@ -97,6 +98,9 @@ export default function ViewControls({
       </button>
       <button type="button" className="view-btn" onClick={onScreenshot}>
         Screenshot
+      </button>
+      <button type="button" className="view-btn" onClick={onShare}>
+        Condividi
       </button>
 
       <div className="view-controls-separator" />
