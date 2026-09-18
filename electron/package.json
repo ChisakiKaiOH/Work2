@@ -1,0 +1,64 @@
+{
+  "name": "shie-hassaikai-application",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shie Hassaikai Application - dashboard di monitoraggio social (desktop)",
+  "author": "Shie Hassaikai",
+  "main": "main.cjs",
+  "scripts": {
+    "prepare:assets": "node scripts/prepare.mjs",
+    "start": "npm run prepare:assets && electron .",
+    "postinstall": "electron-builder install-app-deps",
+    "dist": "npm run prepare:assets && electron-builder",
+    "dist:linux": "npm run prepare:assets && electron-builder --linux",
+    "dist:win": "npm run prepare:assets && electron-builder --win",
+    "dist:mac": "npm run prepare:assets && electron-builder --mac"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.5.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "electron": "^32.2.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.shiehassaikai.application",
+    "productName": "Shie Hassaikai Application",
+    "publish": null,
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node",
+      "node_modules/better-sqlite3/**"
+    ],
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "node_modules/**",
+      "backend/package.json",
+      "backend/src/**/*",
+      "frontend/dist/**/*",
+      "frontend/public/icons/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Utility",
+      "icon": "frontend/public/icons/icon-512.png"
+    },
+    "win": {
+      "target": ["nsis"],
+      "icon": "frontend/public/icons/icon-512.png"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "frontend/public/icons/icon-512.png",
+      "category": "public.app-category.utilities"
+    }
+  }
+}

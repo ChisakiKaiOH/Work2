@@ -1,4 +1,9 @@
-const BASE = '/api';
+// In esecuzione normale (browser, PWA, Electron) frontend e backend condividono
+// la stessa origine, quindi basta '/api'. In un guscio nativo (es. Capacitor su
+// Android) la pagina viene caricata da un'origine locale del dispositivo mentre
+// il backend gira altrove sulla rete: in quel caso si imposta VITE_API_BASE in
+// fase di build (es. "http://192.168.1.50:4317/api") per puntare al PC che lo ospita.
+const BASE = import.meta.env.VITE_API_BASE || '/api';
 
 async function request(path, options) {
   const res = await fetch(`${BASE}${path}`, {

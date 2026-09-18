@@ -80,7 +80,7 @@ export default function App() {
     <div>
       <div className="header">
         <div>
-          <h1>Social Monitor</h1>
+          <h1>Shie Hassaikai Application</h1>
           <p>Tieni sotto controllo tutti i tuoi account social da un unico posto.</p>
         </div>
       </div>

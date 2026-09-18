@@ -4,10 +4,13 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = path.join(__dirname, '..', 'data');
+// SHIE_DATA_DIR viene impostata dal wrapper Electron per scrivere il DB nella
+// cartella dati utente del sistema operativo invece che dentro l'app installata
+// (spesso in sola lettura). In esecuzione standalone (npm start) si usa backend/data.
+const dataDir = process.env.SHIE_DATA_DIR ?? path.join(__dirname, '..', 'data');
 fs.mkdirSync(dataDir, { recursive: true });
 
-export const db = new Database(path.join(dataDir, 'social-monitor.db'));
+export const db = new Database(path.join(dataDir, 'shie-hassaikai.db'));
 db.pragma('journal_mode = WAL');
 
 db.exec(`
