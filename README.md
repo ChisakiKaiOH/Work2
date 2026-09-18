@@ -9,6 +9,11 @@ engagement rate, oltre a un feed dei post recenti con like/commenti/condivisioni
 Pensata per essere installata su **Windows** (installer desktop nativo, via
 Electron) e su **Android** (PWA dal browser o app nativa via Capacitor).
 
+> **Altra app in questo repository:** [`ifc-viewer/`](ifc-viewer/README.md) e'
+> un'applicazione Android separata e indipendente per leggere, navigare e
+> ispezionare le proprieta' di file IFC (modelli BIM). Non e' collegata alla
+> dashboard social descritta in questo README; vedi il suo README dedicato.
+
 ## Architettura
 
 ```

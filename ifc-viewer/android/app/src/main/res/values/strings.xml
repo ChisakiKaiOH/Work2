@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">IFC Reader</string>
+    <string name="title_activity_main">IFC Reader</string>
+    <string name="package_name">com.shiehassaikai.ifcreader</string>
+    <string name="custom_url_scheme">com.shiehassaikai.ifcreader</string>
+</resources>

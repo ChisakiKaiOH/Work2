@@ -1,0 +1,9 @@
+{
+  "appId": "com.shiehassaikai.ifcreader",
+  "appName": "IFC Reader",
+  "webDir": "dist",
+  "backgroundColor": "#f4f6f8",
+  "android": {
+    "backgroundColor": "#f4f6f8"
+  }
+}
