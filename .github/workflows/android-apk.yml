@@ -43,7 +43,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       # I runner ubuntu-latest di GitHub includono gia' un Android SDK
       # preinstallato (ANDROID_HOME/ANDROID_SDK_ROOT e PATH gia' configurati).
