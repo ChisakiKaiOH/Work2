@@ -75,6 +75,19 @@ cd android
   edificio, piano, elementi); alcuni nodi intermedi generati internamente da
   `getSpatialStructure()` senza categoria propria vengono automaticamente
   "appiattiti" per mostrare una gerarchia piu' leggibile.
-- L'icona/splash screen dell'app usa ancora i valori di default di
-  Capacitor: puo' essere personalizzata in seguito con
-  `npx @capacitor/assets generate --android`.
+## Branding
+
+Icona e splash screen sono generate da un unico logo vettoriale
+(`assets/logo.svg` -> `assets/logo.png`, un cubo isometrico con un punto
+evidenziato, che richiama la selezione di un oggetto nel modello 3D):
+
+```bash
+npx capacitor-assets generate --android \
+  --iconBackgroundColor '#f4f6f8' --iconBackgroundColorDark '#14171a' \
+  --splashBackgroundColor '#f4f6f8' --splashBackgroundColorDark '#14171a'
+```
+
+Rigenera icone/splash (chiaro e scuro) in `android/app/src/main/res/` a
+partire da `assets/logo.png`. Per cambiare il logo, sostituisci
+`assets/logo.svg`, ri-esporta `assets/logo.png` (1024x1024, sfondo
+trasparente) e ripeti il comando sopra.

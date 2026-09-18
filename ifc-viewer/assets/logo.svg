@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <g stroke="#12386b" stroke-width="7" stroke-linejoin="round">
+    <!-- right (shadow) face -->
+    <polygon points="742,430 512,560 512,840 742,710" fill="#1f4e96" />
+    <!-- left (mid) face -->
+    <polygon points="282,430 512,560 512,840 282,710" fill="#3b7ddb" />
+    <!-- top face -->
+    <polygon points="512,300 742,430 512,560 282,430" fill="#a9c9f5" />
+  </g>
+  <!-- selected-object marker -->
+  <circle cx="600" cy="392" r="48" fill="#ff9800" stroke="#ffffff" stroke-width="12" />
+</svg>
