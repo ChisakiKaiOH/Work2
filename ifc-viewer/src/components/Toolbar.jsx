@@ -5,6 +5,7 @@ export default function Toolbar({
   panelOpen,
   onTogglePanel,
   onToggleFullscreen,
+  onOpenCast,
 }) {
   return (
     <header className="toolbar">
@@ -33,6 +34,14 @@ export default function Toolbar({
           onClick={onTogglePanel}
         >
           {panelOpen ? "Chiudi pannello" : "Struttura / Proprietà"}
+        </button>
+        <button
+          type="button"
+          className="toolbar-button toolbar-button-secondary"
+          onClick={onOpenCast}
+          title="Proietta su un altro dispositivo"
+        >
+          📡
         </button>
         <button
           type="button"

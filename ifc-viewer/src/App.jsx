@@ -359,6 +359,11 @@ export default function App() {
     return viewer ? getViewerCanvas(viewer) : null;
   }
 
+  function handleOpenCast() {
+    setActiveTab("cast");
+    setPanelOpen(true);
+  }
+
   async function handleExitPlan() {
     const viewer = viewerRef.current;
     if (!viewer) return;
@@ -421,6 +426,7 @@ export default function App() {
           panelOpen={panelOpen}
           onTogglePanel={() => setPanelOpen((v) => !v)}
           onToggleFullscreen={handleToggleFullscreen}
+          onOpenCast={handleOpenCast}
         />
       )}
       <div className="viewer-area">
