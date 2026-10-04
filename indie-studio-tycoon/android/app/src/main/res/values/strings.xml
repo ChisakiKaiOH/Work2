@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Indie Studio Tycoon</string>
+    <string name="title_activity_main">Indie Studio Tycoon</string>
+    <string name="package_name">com.indiestudiotycoon.game</string>
+    <string name="custom_url_scheme">com.indiestudiotycoon.game</string>
+</resources>

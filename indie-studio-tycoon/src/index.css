@@ -1,0 +1,84 @@
+:root {
+  --color-bg: #0e0f13;
+  --color-bg-elevated: #17191f;
+  --color-bg-elevated-2: #1f222b;
+  --color-border: #2b2e38;
+  --color-text: #f3f4f7;
+  --color-text-muted: #9a9fac;
+  --color-accent: #8457ff;
+  --color-accent-strong: #a383ff;
+  --color-accent-contrast: #ffffff;
+  --color-blue: #4d8dff;
+  --color-gold: #e3b341;
+  --color-success: #35cf8e;
+  --color-warning: #f2b84b;
+  --color-danger: #ff6b6b;
+
+  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+  font: 16px/1.45 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  overscroll-behavior: none;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 4px 0 12px;
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+p {
+  margin: 0 0 8px;
+  color: var(--color-text);
+}
+
+ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--color-accent);
+  height: 36px;
+}
+
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-accent);
+  flex: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
