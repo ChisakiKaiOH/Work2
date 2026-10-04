@@ -1,5 +1,6 @@
-import type { Allocation, GameState, Platform, TimeSpeed } from "../types";
+import type { Allocation, Difficulty, GameMode, GameState, Platform, TimeSpeed } from "../types";
 import type { NewProjectChoice } from "../systems/projectFactory";
+import type { AcquisitionMode, PostAcquisitionChoice } from "../systems/acquisitions";
 
 export type GameAction =
   | { type: "TICK" }
@@ -22,10 +23,19 @@ export type GameAction =
   | { type: "RELEASE_DLC"; gameId: string }
   | { type: "PORT_GAME"; gameId: string; platform: Platform }
   | { type: "MAKE_SEQUEL"; gameId: string }
+  | { type: "MAKE_SPINOFF"; gameId: string }
+  | { type: "MAKE_REMASTER"; gameId: string }
+  | { type: "MAKE_REMAKE"; gameId: string }
+  | { type: "PRODUCE_FILM"; ipId: string }
+  | { type: "ACQUIRE_COMPANY"; companyId: string; mode: AcquisitionMode; postChoice: PostAcquisitionChoice | null }
+  | { type: "GO_PUBLIC" }
+  | { type: "BUY_SHARES"; companyId: string; shares: number }
+  | { type: "SELL_SHARES"; companyId: string; shares: number }
+  | { type: "RESOLVE_AWARD_CEREMONY" }
   | { type: "RESOLVE_EVENT"; choiceIndex: number | null }
   | { type: "DISMISS_NOTIFICATION"; id: string }
   | { type: "LOAD_STATE"; state: GameState }
-  | { type: "NEW_GAME"; studioName: string }
+  | { type: "NEW_GAME"; studioName: string; mode: GameMode; difficulty: Difficulty; challengeId?: string }
   | { type: "SET_ACTIVE_SLOT"; slot: number | null }
   | { type: "START_TUTORIAL" }
   | { type: "ADVANCE_TUTORIAL" }

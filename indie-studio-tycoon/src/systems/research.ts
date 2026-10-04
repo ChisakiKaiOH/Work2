@@ -1,11 +1,12 @@
 import type { Allocation, ResearchState } from "../types";
-import { TECH_TREE, techById, prerequisitesMet } from "../data/technology";
+import { TECH_TREE, techById, prerequisitesMet, isTechAvailable } from "../data/technology";
 
-export function canStartResearch(techId: string, research: ResearchState, money: number): boolean {
+export function canStartResearch(techId: string, research: ResearchState, money: number, currentMonth: number): boolean {
   if (research.active) return false;
   if (research.unlocked.includes(techId)) return false;
   const tech = techById(techId);
   if (!tech) return false;
+  if (!isTechAvailable(tech, currentMonth)) return false;
   if (!prerequisitesMet(tech, research.unlocked)) return false;
   return money >= tech.cost;
 }
@@ -41,22 +42,42 @@ export function researchCost(techId: string): number {
 
 export function techQualityMultipliers(unlockedTechIds: string[]): Allocation {
   const mult: Allocation = { gameplay: 1, technology: 1, graphics: 1, sound: 1, story: 1 };
-  if (unlockedTechIds.includes("engineBasic")) mult.technology *= 1.08;
-  if (unlockedTechIds.includes("engineAdvanced")) mult.technology *= 1.1;
-  if (unlockedTechIds.includes("advancedAI")) mult.gameplay *= 1.12;
-  if (unlockedTechIds.includes("graphics3d")) mult.graphics *= 1.15;
-  if (unlockedTechIds.includes("physicsEngine")) {
+  const has = (id: string) => unlockedTechIds.includes(id);
+  if (has("engineBasic")) mult.technology *= 1.08;
+  if (has("engineAdvanced")) mult.technology *= 1.1;
+  if (has("advancedAI")) mult.gameplay *= 1.12;
+  if (has("graphics3d")) mult.graphics *= 1.15;
+  if (has("physicsEngine")) {
     mult.gameplay *= 1.08;
     mult.technology *= 1.08;
   }
-  if (unlockedTechIds.includes("rayTracing")) mult.graphics *= 1.2;
+  if (has("audioSpatial")) mult.sound *= 1.18;
+  if (has("motionCapture")) {
+    mult.graphics *= 1.1;
+    mult.story *= 1.05;
+  }
+  if (has("rayTracing")) mult.graphics *= 1.2;
+  if (has("voiceAI")) {
+    mult.story *= 1.12;
+    mult.sound *= 1.1;
+  }
+  if (has("quantumPhysics")) {
+    mult.gameplay *= 1.1;
+    mult.technology *= 1.1;
+  }
+  if (has("neuralAnimation")) {
+    mult.graphics *= 1.15;
+    mult.gameplay *= 1.05;
+  }
+  if (has("proceduralWorlds")) mult.gameplay *= 1.1;
   return mult;
 }
 
-export function availableTechs(unlocked: string[]) {
+export function availableTechs(unlocked: string[], currentMonth: number) {
   return TECH_TREE.map((tech) => ({
     tech,
     unlocked: unlocked.includes(tech.id),
-    locked: !prerequisitesMet(tech, unlocked),
+    locked: !prerequisitesMet(tech, unlocked) || !isTechAvailable(tech, currentMonth),
+    notYetAvailable: !isTechAvailable(tech, currentMonth),
   }));
 }

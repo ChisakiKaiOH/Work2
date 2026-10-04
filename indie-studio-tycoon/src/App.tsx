@@ -12,6 +12,8 @@ import DevelopmentScreen from "./screens/DevelopmentScreen";
 import GameDetailsScreen from "./screens/GameDetailsScreen";
 import EmployeesScreen from "./screens/EmployeesScreen";
 import StudioScreen from "./screens/StudioScreen";
+import WorldScreen from "./screens/WorldScreen";
+import CompanyDetailsScreen from "./screens/CompanyDetailsScreen";
 import EventsScreen from "./screens/EventsScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import SaveLoadScreen from "./screens/SaveLoadScreen";
@@ -31,6 +33,8 @@ function GameShell() {
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [worldInitialTab, setWorldInitialTab] = useState<"competitors" | "awards">("competitors");
   const [saveLoadMode, setSaveLoadMode] = useState<"save" | "load">("save");
   const [stage, setStage] = useState<Stage>("menu");
 
@@ -76,7 +80,16 @@ function GameShell() {
   function renderScreen() {
     switch (screen) {
       case "dashboard":
-        return <DashboardScreen onNewProject={() => setScreen("newProject")} onOpenLibrary={() => setScreen("gameLibrary")} />;
+        return (
+          <DashboardScreen
+            onNewProject={() => setScreen("newProject")}
+            onOpenLibrary={() => setScreen("gameLibrary")}
+            onOpenAwards={() => {
+              setWorldInitialTab("awards");
+              setScreen("world");
+            }}
+          />
+        );
       case "gameLibrary":
         return (
           <GameLibraryScreen
@@ -125,6 +138,27 @@ function GameShell() {
       case "office":
       case "technology":
         return <StudioScreen />;
+      case "world":
+        return (
+          <WorldScreen
+            initialTab={worldInitialTab}
+            onOpenCompany={(id) => {
+              setSelectedCompanyId(id);
+              setScreen("companyDetails");
+            }}
+          />
+        );
+      case "companyDetails":
+        return selectedCompanyId ? (
+          <CompanyDetailsScreen companyId={selectedCompanyId} onBack={() => setScreen("world")} />
+        ) : (
+          <WorldScreen
+            onOpenCompany={(id) => {
+              setSelectedCompanyId(id);
+              setScreen("companyDetails");
+            }}
+          />
+        );
       case "events":
         return <EventsScreen />;
       case "settings":

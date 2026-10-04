@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import Button from "../components/Button";
+import Mascot from "../components/Mascot";
 import { listSaveMeta } from "../systems/saveSystem";
 import { formatMoney, formatMonth } from "../utils/format";
 
@@ -16,7 +17,7 @@ export default function MainMenuScreen({
   return (
     <div className="screen main-menu-screen">
       <div className="main-menu-logo">
-        <div className="main-menu-mark">🎲</div>
+        <Mascot seed="indie-studio-tycoon-mascot" size={96} />
         <h1>Indie Studio Tycoon</h1>
         <p>Costruisci la tua software house indipendente, un gioco alla volta.</p>
       </div>

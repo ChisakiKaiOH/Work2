@@ -161,7 +161,9 @@ export function compatibilityLabel(fit: number): CompatibilityLabel {
 }
 
 // Punteggio di qualità complessivo 0-100 usato per recensioni e vendite.
-export function compositeQualityScore(project: Project): number {
+// Accetta qualunque oggetto con questi tre campi (Project o ReleasedGame),
+// così può essere richiamato anche dopo la pubblicazione (es. remaster).
+export function compositeQualityScore(project: Pick<Project, "quality" | "bugs" | "genre">): number {
   const axes: QualityAxis[] = ["gameplay", "technology", "graphics", "sound", "story"];
   const ideal = idealAllocationFor(project.genre);
   let weightedSum = 0;

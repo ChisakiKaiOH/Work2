@@ -9,7 +9,7 @@ import { formatMoney } from "../utils/format";
 export default function TechnologyScreen() {
   const state = useGameState();
   const dispatch = useGameDispatch();
-  const techs = availableTechs(state.research.unlocked);
+  const techs = availableTechs(state.research.unlocked, state.month);
   const activeResearch = state.research.active;
   const activeTech = activeResearch ? TECH_TREE.find((t) => t.id === activeResearch.techId) : null;
 
@@ -27,13 +27,17 @@ export default function TechnologyScreen() {
         </Card>
       )}
 
-      {techs.map(({ tech, unlocked, locked }) => {
-        const canStart = canStartResearch(tech.id, state.research, state.money);
+      {techs.map(({ tech, unlocked, locked, notYetAvailable }) => {
+        const canStart = canStartResearch(tech.id, state.research, state.money, state.month);
         return (
-          <Card key={tech.id} title={tech.name} subtitle={unlocked ? "Sbloccata" : locked ? "Prerequisiti mancanti" : undefined}>
+          <Card
+            key={tech.id}
+            title={tech.name}
+            subtitle={unlocked ? "Sbloccata" : notYetAvailable ? "Non ancora disponibile" : locked ? "Prerequisiti mancanti" : undefined}
+          >
             <p className="office-description">{tech.description}</p>
             <p className="field-hint">
-              Costo {formatMoney(tech.cost)} · Durata {tech.durationMonths} mesi
+              Costo {formatMoney(tech.cost)} · Durata {tech.durationMonths} mesi · Categoria {tech.category}
             </p>
             {!unlocked && (
               <Button variant="primary" fullWidth disabled={!canStart} onClick={() => dispatch({ type: "START_RESEARCH", techId: tech.id })}>

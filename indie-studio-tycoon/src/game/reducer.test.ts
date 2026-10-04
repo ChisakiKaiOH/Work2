@@ -85,4 +85,72 @@ describe("gameReducer — time and core flow", () => {
     state = gameReducer(state, { type: "TICK" });
     expect(state.gameOver).toBe(true);
   });
+
+  it("NEW_GAME applies the chosen mode/difficulty starting money", () => {
+    const easy = gameReducer(createNewGameState("X"), { type: "NEW_GAME", studioName: "Easy Co", mode: "Career", difficulty: "Easy" });
+    const insane = gameReducer(createNewGameState("X"), { type: "NEW_GAME", studioName: "Insane Co", mode: "Career", difficulty: "Insane" });
+    expect(easy.money).toBeGreaterThan(insane.money);
+    expect(easy.difficulty).toBe("Easy");
+  });
+
+  it("publishing a project creates a matching IP", () => {
+    let state = createNewGameState("Test Studio");
+    const employeeId = state.employees[0].id;
+    state = gameReducer(state, {
+      type: "START_PROJECT",
+      choice: { genre: "Casual", platforms: ["Mobile"], size: "Small", theme: "Modern" },
+      allocation: { gameplay: 40, technology: 20, graphics: 20, sound: 10, story: 10 },
+      employeeIds: [employeeId],
+    });
+    let guard = 0;
+    while (!state.projects[0].completed && guard < 200) {
+      state = gameReducer(state, { type: "TICK" });
+      guard += 1;
+    }
+    const projectId = state.projects[0].id;
+    state = gameReducer(state, { type: "PUBLISH_PROJECT", projectId, price: 10 });
+    expect(state.ips).toHaveLength(1);
+    expect(state.ips[0].entries[0].kind).toBe("Original");
+  });
+
+  it("ACQUIRE_COMPANY (full) absorbs the target and removes it from the world", () => {
+    let state = createNewGameState("Test Studio");
+    // Denaro ben oltre il valore massimo generabile per una qualunque azienda
+    // iniziale, così il test non dipende da quale azienda casuale capiti prima.
+    state = { ...state, money: 2_000_000_000 };
+    const target = state.companies[0];
+    const next = gameReducer(state, { type: "ACQUIRE_COMPANY", companyId: target.id, mode: "full", postChoice: "integrate" });
+    expect(next.companies.find((c) => c.id === target.id)).toBeUndefined();
+    expect(next.money).toBeLessThan(state.money);
+    expect(next.stats.acquisitionsCompleted).toBe(1);
+  });
+
+  it("ACQUIRE_COMPANY is a no-op when the player cannot afford the offer", () => {
+    let state = createNewGameState("Test Studio");
+    const target = { ...state.companies[0], companyValue: 500_000_000 };
+    state = { ...state, companies: [target, ...state.companies.slice(1)] };
+    const next = gameReducer(state, { type: "ACQUIRE_COMPANY", companyId: target.id, mode: "full", postChoice: "integrate" });
+    expect(next.money).toBe(state.money);
+    expect(next.companies.find((c) => c.id === target.id)).toBeDefined();
+  });
+
+  it("GO_PUBLIC requires a minimum company value, then BUY_SHARES/SELL_SHARES work against a public rival", () => {
+    let state = createNewGameState("Test Studio");
+    const blocked = gameReducer(state, { type: "GO_PUBLIC" });
+    expect(blocked.stockMarket.playerIsPublic).toBe(false);
+
+    state = { ...state, companyValue: 25_000_000, money: 1_000_000 };
+    state = gameReducer(state, { type: "GO_PUBLIC" });
+    expect(state.stockMarket.playerIsPublic).toBe(true);
+    expect(state.stockMarket.playerSharePrice).toBeGreaterThan(0);
+
+    const rival = { ...state.companies[0], isPublic: true, sharePrice: 10, sharesOutstanding: 1_000_000 };
+    state = { ...state, companies: [rival, ...state.companies.slice(1)] };
+    state = gameReducer(state, { type: "BUY_SHARES", companyId: rival.id, shares: 100 });
+    expect(state.stockMarket.holdings).toHaveLength(1);
+    expect(state.money).toBe(1_000_000 - 1000);
+
+    state = gameReducer(state, { type: "SELL_SHARES", companyId: rival.id, shares: 100 });
+    expect(state.stockMarket.holdings).toHaveLength(0);
+  });
 });

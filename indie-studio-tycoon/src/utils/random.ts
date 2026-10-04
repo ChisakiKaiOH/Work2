@@ -40,3 +40,29 @@ export function weightedPick<T extends { weight: number }>(items: readonly T[], 
 export function chance(probability: number, rng: RandomFn = defaultRandom): boolean {
   return rng() < probability;
 }
+
+// Hash deterministico di una stringa in un intero 32-bit, usato come seme
+// per i generatori grafici procedurali (loghi, mascotte, copertine): la
+// stessa stringa (es. l'id di un'azienda o di un gioco) produce sempre lo
+// stesso seme, quindi sempre la stessa immagine, senza doverla memorizzare.
+export function hashStringToSeed(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash >>> 0;
+}
+
+// Generatore pseudo-casuale deterministico (mulberry32) a partire da un seme
+// numerico: usato per rendere grafica procedurale riproducibile.
+export function seededRandom(seed: number): RandomFn {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}

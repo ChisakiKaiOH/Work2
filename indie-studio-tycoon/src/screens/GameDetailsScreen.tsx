@@ -9,6 +9,8 @@ import Sparkline from "../components/Sparkline";
 import { axisLabel } from "../data/genres";
 import { formatMoney } from "../utils/format";
 import { DLC_COST, PORT_COST, UPDATE_COST } from "../systems/sales";
+import { FILM_MIN_STAGE_INDEX, FILM_COST, REMAKE_COST, REMASTER_COST, franchisePotential } from "../systems/ip";
+import { COMPANY_STAGES_INDEX } from "../systems/companies";
 
 type Tab = "overview" | "sales" | "reviews";
 
@@ -31,6 +33,9 @@ export default function GameDetailsScreen({ gameId, onBack }: { gameId: string; 
   }
 
   const missingPlatforms = PLATFORMS.filter((p) => !game.platforms.includes(p));
+  const ip = state.ips.find((i) => i.entries.some((e) => e.releasedGameId === gameId));
+  const potential = ip ? franchisePotential(ip) : "Nessuno";
+  const canProduceFilm = ip && potential === "Film o Serie TV" && COMPANY_STAGES_INDEX[state.stage] >= FILM_MIN_STAGE_INDEX;
 
   return (
     <div className="screen game-details-screen">
@@ -99,6 +104,27 @@ export default function GameDetailsScreen({ gameId, onBack }: { gameId: string; 
               <span>{game.status}</span>
             </div>
           </Card>
+
+          {ip && (
+            <Card title={`IP: ${ip.name}`} subtitle={`Potenziale: ${potential}`}>
+              <div className="dashboard-list-row">
+                <span>Valore IP</span>
+                <span>{formatMoney(ip.value)}</span>
+              </div>
+              <div className="dashboard-list-row">
+                <span>Fanbase</span>
+                <span>{Math.round(ip.fanbase)}</span>
+              </div>
+              <div className="dashboard-list-row">
+                <span>Riconoscibilità</span>
+                <span>{Math.round(ip.recognizability)}/100</span>
+              </div>
+              <div className="dashboard-list-row">
+                <span>Episodi nella saga</span>
+                <span>{ip.entries.length}</span>
+              </div>
+            </Card>
+          )}
         </>
       )}
 
@@ -160,6 +186,35 @@ export default function GameDetailsScreen({ gameId, onBack }: { gameId: string; 
             <Button variant="primary" fullWidth disabled={game.hasSequel} onClick={() => dispatch({ type: "MAKE_SEQUEL", gameId: game.id })}>
               {game.hasSequel ? "Sequel già avviato" : "Avvia un sequel"}
             </Button>
+            <Button variant="secondary" fullWidth onClick={() => dispatch({ type: "MAKE_SPINOFF", gameId: game.id })}>
+              Avvia uno spin-off
+            </Button>
+            <Button
+              variant="secondary"
+              fullWidth
+              disabled={state.money < REMASTER_COST}
+              onClick={() => dispatch({ type: "MAKE_REMASTER", gameId: game.id })}
+            >
+              Remaster ({formatMoney(REMASTER_COST)})
+            </Button>
+            <Button
+              variant="secondary"
+              fullWidth
+              disabled={state.money < REMAKE_COST}
+              onClick={() => dispatch({ type: "MAKE_REMAKE", gameId: game.id })}
+            >
+              Remake ({formatMoney(REMAKE_COST)})
+            </Button>
+            {canProduceFilm && ip && (
+              <Button
+                variant="primary"
+                fullWidth
+                disabled={state.money < FILM_COST || ip.hasFilmOrSeries}
+                onClick={() => dispatch({ type: "PRODUCE_FILM", ipId: ip.id })}
+              >
+                {ip.hasFilmOrSeries ? "Film/Serie già prodotti" : `Produci film/serie TV (${formatMoney(FILM_COST)})`}
+              </Button>
+            )}
           </Card>
         </>
       )}

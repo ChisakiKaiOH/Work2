@@ -8,14 +8,22 @@ import { formatMoney } from "../utils/format";
 export default function DashboardScreen({
   onNewProject,
   onOpenLibrary,
+  onOpenAwards,
 }: {
   onNewProject: () => void;
   onOpenLibrary: () => void;
+  onOpenAwards: () => void;
 }) {
   const state = useGameState();
   const activeProjects = state.projects.filter((p) => !p.completed);
   const readyToPublish = state.projects.filter((p) => p.completed);
   const recentNotifications = state.notifications.slice(-5).reverse();
+
+  const topGenres = (Object.entries(state.genrePopularity) as [string, number][])
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
+  const topGames = [...state.releasedGames].sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 3);
 
   return (
     <div className="screen dashboard-screen">
@@ -26,16 +34,43 @@ export default function DashboardScreen({
         </Card>
       )}
 
+      {state.pendingAwardCeremonyId && (
+        <Card className="award-banner" onClick={onOpenAwards}>
+          <strong>🏆 I Global Game Awards di quest'anno sono pronti!</strong>
+          <p>Tocca per vedere i vincitori.</p>
+        </Card>
+      )}
+
       <div className="stat-grid">
         <StatPill label="Denaro" value={formatMoney(state.money)} tone={state.money < 0 ? "danger" : "neutral"} icon="💰" />
         <StatPill label="Reputazione" value={`${Math.round(state.reputation)}/100`} tone="gold" icon="⭐" />
-        <StatPill label="Progetti attivi" value={activeProjects.length} icon="🛠" />
-        <StatPill label="Giochi pubblicati" value={state.stats.totalGamesReleased} icon="📦" />
+        <StatPill label="Valore azienda" value={formatMoney(state.companyValue)} tone="success" icon="📈" />
+        <StatPill label="Fan" value={Math.round(state.fanbase).toLocaleString("it-IT")} icon="❤️" />
       </div>
 
-      <Card title="Reputazione dello studio">
-        <ProgressBar value={state.reputation} tone="gold" />
+      <Card title={state.stage} subtitle={`${activeProjects.length} progetti in sviluppo · ${state.stats.totalGamesReleased} giochi pubblicati`}>
+        <ProgressBar value={state.reputation} tone="gold" label="Reputazione" />
       </Card>
+
+      <Card title="Mercato" subtitle={state.marketTrend.label}>
+        {topGenres.map(([genre, value]) => (
+          <div key={genre} className="dashboard-list-row">
+            <span>{genre}</span>
+            <span>{Math.round(value)}</span>
+          </div>
+        ))}
+      </Card>
+
+      {topGames.length > 0 && (
+        <Card title="I tuoi giochi migliori">
+          {topGames.map((g) => (
+            <div key={g.id} className="dashboard-list-row">
+              <span>{g.name}</span>
+              <span>{formatMoney(g.totalRevenue)}</span>
+            </div>
+          ))}
+        </Card>
+      )}
 
       {readyToPublish.length > 0 && (
         <Card title="Pronti per la pubblicazione" subtitle="Vai alla scheda Progetti per pubblicarli">

@@ -1,7 +1,10 @@
 import type { TechNode } from "../types";
 
 // Albero tecnologico originale: ogni nodo sblocca un effetto reale applicato
-// in systems/development.ts e systems/sales.ts tramite TECH_EFFECTS sotto.
+// in systems/development.ts, systems/sales.ts e systems/projectFactory.ts
+// tramite systems/research.ts → techQualityMultipliers(). Alcune tecnologie
+// non sono disponibili fin da subito (availableFromMonth > 0): simulano
+// l'evoluzione tecnologica del settore nel corso degli anni di partita.
 export const TECH_TREE: TechNode[] = [
   {
     id: "engineBasic",
@@ -11,6 +14,7 @@ export const TECH_TREE: TechNode[] = [
     durationMonths: 1,
     prerequisites: [],
     category: "Engine",
+    availableFromMonth: 0,
   },
   {
     id: "engineAdvanced",
@@ -20,6 +24,7 @@ export const TECH_TREE: TechNode[] = [
     durationMonths: 2,
     prerequisites: ["engineBasic"],
     category: "Engine",
+    availableFromMonth: 0,
   },
   {
     id: "advancedAI",
@@ -28,7 +33,8 @@ export const TECH_TREE: TechNode[] = [
     cost: 30_000,
     durationMonths: 2,
     prerequisites: ["engineBasic"],
-    category: "Gameplay",
+    category: "AI",
+    availableFromMonth: 0,
   },
   {
     id: "graphics3d",
@@ -38,6 +44,7 @@ export const TECH_TREE: TechNode[] = [
     durationMonths: 3,
     prerequisites: ["engineAdvanced"],
     category: "Graphics",
+    availableFromMonth: 0,
   },
   {
     id: "physicsEngine",
@@ -46,7 +53,8 @@ export const TECH_TREE: TechNode[] = [
     cost: 45_000,
     durationMonths: 2,
     prerequisites: ["graphics3d"],
-    category: "Gameplay",
+    category: "Physics",
+    availableFromMonth: 0,
   },
   {
     id: "onlineMultiplayer",
@@ -55,7 +63,88 @@ export const TECH_TREE: TechNode[] = [
     cost: 55_000,
     durationMonths: 3,
     prerequisites: ["engineAdvanced"],
-    category: "Online",
+    category: "Network",
+    availableFromMonth: 0,
+  },
+  {
+    id: "audioSpatial",
+    name: "Audio 3D Spaziale",
+    description: "Motore audio posizionale avanzato. Migliora sensibilmente la qualità Audio di ogni progetto.",
+    cost: 20_000,
+    durationMonths: 1,
+    prerequisites: ["engineBasic"],
+    category: "Audio",
+    availableFromMonth: 0,
+  },
+  {
+    id: "mobilePipeline",
+    name: "Pipeline Mobile Ottimizzata",
+    description: "Strumenti dedicati allo sviluppo mobile. Riduce costo e durata dei progetti su Mobile.",
+    cost: 18_000,
+    durationMonths: 1,
+    prerequisites: ["engineBasic"],
+    category: "Mobile",
+    availableFromMonth: 0,
+  },
+  {
+    id: "devToolsSuite",
+    name: "Suite di Sviluppo Interna",
+    description: "Strumenti proprietari che velocizzano ogni fase di sviluppo in tutto lo studio.",
+    cost: 25_000,
+    durationMonths: 2,
+    prerequisites: ["engineBasic"],
+    category: "Tools",
+    availableFromMonth: 0,
+  },
+  {
+    id: "proceduralGen",
+    name: "Generazione Procedurale",
+    description: "Contenuti generati algoritmicamente. Riduce tempo e costo dei progetti Large/AAA.",
+    cost: 50_000,
+    durationMonths: 2,
+    prerequisites: ["advancedAI"],
+    category: "Procedural",
+    availableFromMonth: 0,
+  },
+  {
+    id: "motionCapture",
+    name: "Motion Capture",
+    description: "Catture dei movimenti reali per animazioni piu' naturali. Migliora Grafica e Narrativa.",
+    cost: 40_000,
+    durationMonths: 2,
+    prerequisites: ["engineAdvanced"],
+    category: "Animation",
+    availableFromMonth: 12,
+  },
+  {
+    id: "cloudSaves",
+    name: "Salvataggi Cloud",
+    description: "Sincronizzazione cloud dei progressi dei giocatori. Migliora la fidelizzazione e la reputazione.",
+    cost: 22_000,
+    durationMonths: 1,
+    prerequisites: ["onlineMultiplayer"],
+    category: "Cloud",
+    availableFromMonth: 12,
+  },
+  {
+    id: "globalCDN",
+    name: "CDN Globale",
+    description: "Rete di distribuzione dei contenuti su scala mondiale. Aumenta la portata dei giochi online.",
+    cost: 38_000,
+    durationMonths: 2,
+    prerequisites: ["onlineMultiplayer"],
+    category: "Network",
+    availableFromMonth: 18,
+  },
+  {
+    id: "virtualReality",
+    name: "Realtà Virtuale",
+    description: "Supporto a visori VR. Sblocca la piattaforma VR, una nicchia di mercato ad alto margine.",
+    cost: 70_000,
+    durationMonths: 3,
+    prerequisites: ["physicsEngine"],
+    category: "VR",
+    availableFromMonth: 18,
   },
   {
     id: "rayTracing",
@@ -65,24 +154,67 @@ export const TECH_TREE: TechNode[] = [
     durationMonths: 3,
     prerequisites: ["graphics3d"],
     category: "Graphics",
+    availableFromMonth: 24,
   },
   {
-    id: "virtualReality",
-    name: "Realtà Virtuale",
-    description: "Supporto a visori VR. Apre una nicchia di mercato ad alto margine.",
-    cost: 70_000,
+    id: "anticheatSecurity",
+    name: "Sistema Anti-Cheat",
+    description: "Protezione avanzata contro cheat e intrusioni nei giochi online. Riduce gli eventi negativi legati alla sicurezza.",
+    cost: 32_000,
+    durationMonths: 2,
+    prerequisites: ["onlineMultiplayer"],
+    category: "Security",
+    availableFromMonth: 24,
+  },
+  {
+    id: "voiceAI",
+    name: "Sintesi Vocale AI",
+    description: "Doppiaggio sintetico di alta qualità generato da intelligenza artificiale. Migliora Narrativa e Audio nei giochi story-driven.",
+    cost: 48_000,
+    durationMonths: 2,
+    prerequisites: ["audioSpatial", "advancedAI"],
+    category: "Audio",
+    availableFromMonth: 30,
+  },
+  {
+    id: "quantumPhysics",
+    name: "Fisica Avanzata",
+    description: "Simulazioni fisiche di nuova generazione. Ulteriore spinta a Gameplay e Tecnologia.",
+    cost: 65_000,
     durationMonths: 3,
     prerequisites: ["physicsEngine"],
-    category: "Immersive",
+    category: "Physics",
+    availableFromMonth: 36,
   },
   {
-    id: "proceduralGen",
-    name: "Generazione Procedurale",
-    description: "Contenuti generati algoritmicamente. Riduce tempo e costo dei progetti Large/AAA.",
-    cost: 50_000,
-    durationMonths: 2,
-    prerequisites: ["advancedAI"],
-    category: "Gameplay",
+    id: "neuralAnimation",
+    name: "Animazione Neurale",
+    description: "Animazioni generate e rifinite da reti neurali. Grande miglioramento di Grafica e Gameplay.",
+    cost: 80_000,
+    durationMonths: 3,
+    prerequisites: ["advancedAI", "motionCapture"],
+    category: "AI",
+    availableFromMonth: 36,
+  },
+  {
+    id: "cloudGamingStream",
+    name: "Cloud Gaming Streaming",
+    description: "Distribuzione dei giochi in streaming. Apre un canale di ricavi continuativo per i giochi online pubblicati.",
+    cost: 100_000,
+    durationMonths: 4,
+    prerequisites: ["cloudSaves", "globalCDN"],
+    category: "Cloud",
+    availableFromMonth: 48,
+  },
+  {
+    id: "proceduralWorlds",
+    name: "Mondi Procedurali Infiniti",
+    description: "Generazione procedurale di mondi interi, fisicamente coerenti. Grande spinta ai progetti Large/AAA e riduzione ulteriore dei tempi.",
+    cost: 110_000,
+    durationMonths: 4,
+    prerequisites: ["proceduralGen", "quantumPhysics"],
+    category: "Procedural",
+    availableFromMonth: 42,
   },
 ];
 
@@ -92,4 +224,8 @@ export function techById(id: string): TechNode | undefined {
 
 export function prerequisitesMet(tech: TechNode, unlocked: string[]): boolean {
   return tech.prerequisites.every((p) => unlocked.includes(p));
+}
+
+export function isTechAvailable(tech: TechNode, currentMonth: number): boolean {
+  return currentMonth >= tech.availableFromMonth;
 }

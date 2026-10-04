@@ -53,6 +53,7 @@ export function getSaveMeta(slot: number): SaveMeta | null {
       money: file.state.money,
       month: file.state.month,
       reputation: file.state.reputation,
+      stage: file.state.stage,
       savedAt: file.savedAt,
     };
   } catch {
