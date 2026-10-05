@@ -1,0 +1,134 @@
+[
+  {
+    "id": "driver_01",
+    "name": "Mika Ruston",
+    "archetype": "Aggressive",
+    "skill": 68,
+    "aggressiveness": 58,
+    "consistency": 74,
+    "specialty": "Technical",
+    "unlockLevel": 1,
+    "avatarSeed": "drv1"
+  },
+  {
+    "id": "driver_02",
+    "name": "Elena Vask",
+    "archetype": "Defensive",
+    "skill": 61,
+    "aggressiveness": 44,
+    "consistency": 60,
+    "specialty": "Speed",
+    "unlockLevel": 1,
+    "avatarSeed": "drv2"
+  },
+  {
+    "id": "driver_03",
+    "name": "Jonas Brek",
+    "archetype": "Balanced",
+    "skill": 63,
+    "aggressiveness": 81,
+    "consistency": 50,
+    "specialty": "Wet",
+    "unlockLevel": 1,
+    "avatarSeed": "drv3"
+  },
+  {
+    "id": "driver_04",
+    "name": "Priya Nandan",
+    "archetype": "Technical",
+    "skill": 71,
+    "aggressiveness": 47,
+    "consistency": 83,
+    "specialty": "Endurance",
+    "unlockLevel": 5,
+    "avatarSeed": "drv4"
+  },
+  {
+    "id": "driver_05",
+    "name": "Carlos Veyra",
+    "archetype": "Risky",
+    "skill": 74,
+    "aggressiveness": 69,
+    "consistency": 44,
+    "specialty": "AllRound",
+    "unlockLevel": 8,
+    "avatarSeed": "drv5"
+  },
+  {
+    "id": "driver_06",
+    "name": "Freya Lindqvist",
+    "archetype": "Aggressive",
+    "skill": 74,
+    "aggressiveness": 48,
+    "consistency": 69,
+    "specialty": "Technical",
+    "unlockLevel": 12,
+    "avatarSeed": "drv6"
+  },
+  {
+    "id": "driver_07",
+    "name": "Omar Haleth",
+    "archetype": "Defensive",
+    "skill": 58,
+    "aggressiveness": 58,
+    "consistency": 43,
+    "specialty": "Speed",
+    "unlockLevel": 16,
+    "avatarSeed": "drv7"
+  },
+  {
+    "id": "driver_08",
+    "name": "Sofia Marn",
+    "archetype": "Balanced",
+    "skill": 74,
+    "aggressiveness": 38,
+    "consistency": 58,
+    "specialty": "Wet",
+    "unlockLevel": 20,
+    "avatarSeed": "drv8"
+  },
+  {
+    "id": "driver_09",
+    "name": "Dmitri Volkar",
+    "archetype": "Technical",
+    "skill": 71,
+    "aggressiveness": 55,
+    "consistency": 71,
+    "specialty": "Endurance",
+    "unlockLevel": 25,
+    "avatarSeed": "drv9"
+  },
+  {
+    "id": "driver_10",
+    "name": "Aiko Tanra",
+    "archetype": "Risky",
+    "skill": 89,
+    "aggressiveness": 44,
+    "consistency": 54,
+    "specialty": "AllRound",
+    "unlockLevel": 30,
+    "avatarSeed": "drv10"
+  },
+  {
+    "id": "driver_11",
+    "name": "Lucas Dorne",
+    "archetype": "Aggressive",
+    "skill": 87,
+    "aggressiveness": 86,
+    "consistency": 62,
+    "specialty": "Technical",
+    "unlockLevel": 40,
+    "avatarSeed": "drv11"
+  },
+  {
+    "id": "driver_12",
+    "name": "Nina Kessler",
+    "archetype": "Defensive",
+    "skill": 82,
+    "aggressiveness": 56,
+    "consistency": 77,
+    "specialty": "Speed",
+    "unlockLevel": 50,
+    "avatarSeed": "drv12"
+  }
+]

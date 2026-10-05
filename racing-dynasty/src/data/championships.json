@@ -1,0 +1,110 @@
+[
+  {
+    "id": "champ_01",
+    "name": "Rookie Cup",
+    "tier": "Rookie",
+    "region": "Europe",
+    "requiredPR": 160,
+    "trackIds": [
+      "track_17",
+      "track_18",
+      "track_11",
+      "track_09",
+      "track_20"
+    ],
+    "creditReward": 4500,
+    "tokenReward": 20,
+    "carRewardId": null,
+    "description": "La Rookie Cup mette alla prova scuderie con un PR di almeno 160, su 5 gare selezionate."
+  },
+  {
+    "id": "champ_02",
+    "name": "Street Cup",
+    "tier": "Street",
+    "region": "Asia",
+    "requiredPR": 250,
+    "trackIds": [
+      "track_20",
+      "track_04",
+      "track_11",
+      "track_15",
+      "track_16"
+    ],
+    "creditReward": 9000,
+    "tokenReward": 40,
+    "carRewardId": null,
+    "description": "La Street Cup mette alla prova scuderie con un PR di almeno 250, su 5 gare selezionate."
+  },
+  {
+    "id": "champ_03",
+    "name": "Sport Cup",
+    "tier": "Sport",
+    "region": "America",
+    "requiredPR": 340,
+    "trackIds": [
+      "track_19",
+      "track_04",
+      "track_10",
+      "track_15",
+      "track_16"
+    ],
+    "creditReward": 18000,
+    "tokenReward": 80,
+    "carRewardId": null,
+    "description": "La Sport Cup mette alla prova scuderie con un PR di almeno 340, su 5 gare selezionate."
+  },
+  {
+    "id": "champ_04",
+    "name": "Super Cup",
+    "tier": "Super",
+    "region": "Oceania",
+    "requiredPR": 440,
+    "trackIds": [
+      "track_12",
+      "track_08",
+      "track_07",
+      "track_17",
+      "track_18"
+    ],
+    "creditReward": 35000,
+    "tokenReward": 150,
+    "carRewardId": null,
+    "description": "La Super Cup mette alla prova scuderie con un PR di almeno 440, su 5 gare selezionate."
+  },
+  {
+    "id": "champ_05",
+    "name": "Hyper Cup",
+    "tier": "Hyper",
+    "region": "MiddleEast",
+    "requiredPR": 540,
+    "trackIds": [
+      "track_11",
+      "track_13",
+      "track_19",
+      "track_12",
+      "track_04"
+    ],
+    "creditReward": 65000,
+    "tokenReward": 280,
+    "carRewardId": null,
+    "description": "La Hyper Cup mette alla prova scuderie con un PR di almeno 540, su 5 gare selezionate."
+  },
+  {
+    "id": "champ_06",
+    "name": "Legend Cup",
+    "tier": "Legend",
+    "region": "North",
+    "requiredPR": 650,
+    "trackIds": [
+      "track_08",
+      "track_16",
+      "track_03",
+      "track_20",
+      "track_17"
+    ],
+    "creditReward": 120000,
+    "tokenReward": 500,
+    "carRewardId": null,
+    "description": "La Legend Cup mette alla prova scuderie con un PR di almeno 650, su 5 gare selezionate."
+  }
+]

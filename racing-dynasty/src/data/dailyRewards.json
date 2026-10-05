@@ -1,0 +1,37 @@
+[
+  {
+    "day": 1,
+    "kind": "credits",
+    "amount": 500
+  },
+  {
+    "day": 2,
+    "kind": "energy",
+    "amount": 20
+  },
+  {
+    "day": 3,
+    "kind": "upgradeParts",
+    "amount": 3
+  },
+  {
+    "day": 4,
+    "kind": "tokens",
+    "amount": 15
+  },
+  {
+    "day": 5,
+    "kind": "pack",
+    "amount": 1
+  },
+  {
+    "day": 6,
+    "kind": "credits",
+    "amount": 1500
+  },
+  {
+    "day": 7,
+    "kind": "premiumPack",
+    "amount": 1
+  }
+]

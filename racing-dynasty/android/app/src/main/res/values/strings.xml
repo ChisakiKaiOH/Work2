@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Racing Dynasty</string>
+    <string name="title_activity_main">Racing Dynasty</string>
+    <string name="package_name">com.racingdynasty.game</string>
+    <string name="custom_url_scheme">com.racingdynasty.game</string>
+</resources>

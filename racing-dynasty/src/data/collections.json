@@ -1,0 +1,126 @@
+[
+  {
+    "id": "coll_01",
+    "name": "Street Collection",
+    "carDefIds": [
+      "car_001",
+      "car_002",
+      "car_003",
+      "car_004",
+      "car_005",
+      "car_006",
+      "car_007",
+      "car_008",
+      "car_009",
+      "car_010",
+      "car_011",
+      "car_012",
+      "car_013",
+      "car_014"
+    ],
+    "rewardCredits": 21000,
+    "rewardTokens": 140
+  },
+  {
+    "id": "coll_02",
+    "name": "Sport Collection",
+    "carDefIds": [
+      "car_015",
+      "car_016",
+      "car_017",
+      "car_018",
+      "car_019",
+      "car_020",
+      "car_021",
+      "car_022",
+      "car_023",
+      "car_024",
+      "car_025"
+    ],
+    "rewardCredits": 16500,
+    "rewardTokens": 110
+  },
+  {
+    "id": "coll_03",
+    "name": "Super Collection",
+    "carDefIds": [
+      "car_026",
+      "car_027",
+      "car_028",
+      "car_029",
+      "car_030",
+      "car_031",
+      "car_032",
+      "car_033",
+      "car_034",
+      "car_035"
+    ],
+    "rewardCredits": 15000,
+    "rewardTokens": 100
+  },
+  {
+    "id": "coll_04",
+    "name": "Hyper Collection",
+    "carDefIds": [
+      "car_036",
+      "car_037",
+      "car_038",
+      "car_039",
+      "car_040",
+      "car_041",
+      "car_042",
+      "car_043"
+    ],
+    "rewardCredits": 12000,
+    "rewardTokens": 80
+  },
+  {
+    "id": "coll_05",
+    "name": "Prototype Collection",
+    "carDefIds": [
+      "car_044",
+      "car_045",
+      "car_046",
+      "car_047"
+    ],
+    "rewardCredits": 6000,
+    "rewardTokens": 40
+  },
+  {
+    "id": "coll_06",
+    "name": "Legend Collection",
+    "carDefIds": [
+      "car_048",
+      "car_049",
+      "car_050"
+    ],
+    "rewardCredits": 4500,
+    "rewardTokens": 30
+  },
+  {
+    "id": "coll_brand_ferrano",
+    "name": "Ferrano Heritage",
+    "carDefIds": [
+      "car_005",
+      "car_010",
+      "car_035"
+    ],
+    "rewardCredits": 6000,
+    "rewardTokens": 45
+  },
+  {
+    "id": "coll_brand_veltara",
+    "name": "Veltara Heritage",
+    "carDefIds": [
+      "car_002",
+      "car_011",
+      "car_017",
+      "car_023",
+      "car_032",
+      "car_034",
+      "car_040"
+    ],
+    "rewardCredits": 14000,
+    "rewardTokens": 105
+  }
+]

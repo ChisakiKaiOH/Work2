@@ -1,0 +1,167 @@
+[
+  {
+    "id": "pack_basic",
+    "name": "Basic Pack",
+    "description": "3 auto, buona probabilità di modelli Street e Sport.",
+    "carCount": 3,
+    "price": 1500,
+    "currency": "credits",
+    "odds": {
+      "Common": 55,
+      "Uncommon": 30,
+      "Rare": 12,
+      "Epic": 2.5,
+      "Legendary": 0.4,
+      "Mythic": 0.1
+    },
+    "categoryPool": null,
+    "pityThreshold": 15,
+    "guaranteedRarityAt": "Rare"
+  },
+  {
+    "id": "pack_sport",
+    "name": "Sport Pack",
+    "description": "3 auto, orientato verso Sport e Super.",
+    "carCount": 3,
+    "price": 90,
+    "currency": "tokens",
+    "odds": {
+      "Common": 25,
+      "Uncommon": 35,
+      "Rare": 28,
+      "Epic": 10,
+      "Legendary": 1.6,
+      "Mythic": 0.4
+    },
+    "categoryPool": null,
+    "pityThreshold": 12,
+    "guaranteedRarityAt": "Epic"
+  },
+  {
+    "id": "pack_epic",
+    "name": "Epic Pack",
+    "description": "5 auto, alta probabilità di Epic o superiore.",
+    "carCount": 5,
+    "price": 220,
+    "currency": "tokens",
+    "odds": {
+      "Common": 5,
+      "Uncommon": 20,
+      "Rare": 35,
+      "Epic": 30,
+      "Legendary": 8,
+      "Mythic": 2
+    },
+    "categoryPool": null,
+    "pityThreshold": 8,
+    "guaranteedRarityAt": "Epic"
+  },
+  {
+    "id": "pack_legend",
+    "name": "Legend Pack",
+    "description": "5 auto, garantisce almeno una Legendary.",
+    "carCount": 5,
+    "price": 480,
+    "currency": "tokens",
+    "odds": {
+      "Common": 0,
+      "Uncommon": 5,
+      "Rare": 20,
+      "Epic": 35,
+      "Legendary": 32,
+      "Mythic": 8
+    },
+    "categoryPool": null,
+    "pityThreshold": 5,
+    "guaranteedRarityAt": "Legendary"
+  },
+  {
+    "id": "pack_event_rain",
+    "name": "Rain Masters Pack",
+    "description": "Pacchetto a tempo: auto da bagnato.",
+    "carCount": 3,
+    "price": 150,
+    "currency": "tokens",
+    "odds": {
+      "Common": 10,
+      "Uncommon": 30,
+      "Rare": 35,
+      "Epic": 20,
+      "Legendary": 4.5,
+      "Mythic": 0.5
+    },
+    "categoryPool": [
+      "Sport",
+      "Super"
+    ],
+    "pityThreshold": 10,
+    "guaranteedRarityAt": "Rare",
+    "limited": true
+  },
+  {
+    "id": "pack_event_prototype",
+    "name": "Prototype Trials Pack",
+    "description": "Pacchetto a tempo: prototipi da endurance.",
+    "carCount": 3,
+    "price": 260,
+    "currency": "tokens",
+    "odds": {
+      "Common": 0,
+      "Uncommon": 10,
+      "Rare": 30,
+      "Epic": 38,
+      "Legendary": 18,
+      "Mythic": 4
+    },
+    "categoryPool": [
+      "Prototype",
+      "Hyper"
+    ],
+    "pityThreshold": 8,
+    "guaranteedRarityAt": "Epic",
+    "limited": true
+  },
+  {
+    "id": "pack_starter",
+    "name": "Starter Pack",
+    "description": "Pacchetto economico per i nuovi piloti.",
+    "carCount": 3,
+    "price": 800,
+    "currency": "credits",
+    "odds": {
+      "Common": 70,
+      "Uncommon": 25,
+      "Rare": 5,
+      "Epic": 0,
+      "Legendary": 0,
+      "Mythic": 0
+    },
+    "categoryPool": [
+      "Street"
+    ],
+    "pityThreshold": 20,
+    "guaranteedRarityAt": "Uncommon"
+  },
+  {
+    "id": "pack_mythic_vault",
+    "name": "Mythic Vault",
+    "description": "Il pacchetto più raro: solo le auto leggendarie.",
+    "carCount": 1,
+    "price": 900,
+    "currency": "tokens",
+    "odds": {
+      "Common": 0,
+      "Uncommon": 0,
+      "Rare": 0,
+      "Epic": 10,
+      "Legendary": 55,
+      "Mythic": 35
+    },
+    "categoryPool": [
+      "Legend",
+      "Prototype"
+    ],
+    "pityThreshold": 4,
+    "guaranteedRarityAt": "Legendary"
+  }
+]

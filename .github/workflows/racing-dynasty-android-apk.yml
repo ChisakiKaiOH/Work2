@@ -1,0 +1,87 @@
+name: Build Racing Dynasty Android APK
+
+# Compila l'APK del progetto Capacitor in racing-dynasty/android. Il
+# repository Maven di Google (necessario al plugin Gradle di Android) non e'
+# raggiungibile dall'ambiente di sviluppo remoto usato per questo progetto:
+# questa pipeline gira invece sui runner ospitati da GitHub, dove quell'accesso
+# e' disponibile.
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'racing-dynasty/**'
+      - '.github/workflows/racing-dynasty-android-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: racing-dynasty/package-lock.json
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # I runner ubuntu-latest di GitHub includono gia' un Android SDK
+      # preinstallato (ANDROID_HOME/ANDROID_SDK_ROOT e PATH gia' configurati).
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Install racing-dynasty dependencies
+        working-directory: racing-dynasty
+        run: npm ci
+
+      - name: Type-check and run unit tests
+        working-directory: racing-dynasty
+        run: |
+          npx tsc -p tsconfig.app.json --noEmit
+          npm run test
+
+      - name: Build web assets
+        working-directory: racing-dynasty
+        run: npm run build
+
+      - name: Sync Capacitor Android project
+        working-directory: racing-dynasty
+        run: npx cap sync android
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-racing-dynasty-${{ runner.os }}-${{ hashFiles('racing-dynasty/android/**/*.gradle*', 'racing-dynasty/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-racing-dynasty-${{ runner.os }}-
+
+      - name: Build debug APK
+        working-directory: racing-dynasty/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: racing-dynasty-debug-apk
+          path: racing-dynasty/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
