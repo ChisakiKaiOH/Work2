@@ -1,38 +1,52 @@
-import type { MarketListing } from '../types';
+import type { UsedCarListing, DriverOffer, DriverDef } from '../types';
 import { CARS } from '../data';
-import { emptyUpgrades } from './performanceRating';
-import type { Rng } from '../simulation/raceSimulator';
+import type { Rng } from '../sim/rng';
 
-export const MARKET_REFRESH_MS = 24 * 60 * 60 * 1000;
+/**
+ * Historically-important ('Iconic') cars never appear in the random used
+ * market — those are reserved for a dedicated auction event (section 16-18
+ * of the brief), so the market only rolls from everything below that rarity.
+ */
+const MARKETABLE_CARS = CARS.filter(c => c.rarity !== 'Iconic');
 
-/** Procedurally generates the day's second-hand market: 5-10 cars, random condition and light used-upgrades. */
-export function generateMarket(rng: Rng, now: number): MarketListing[] {
-  const count = 5 + Math.floor(rng() * 6); // 5-10
-  const listings: MarketListing[] = [];
+export function generateUsedCarMarket(rng: Rng, expiresAtEntryId: string): UsedCarListing[] {
+  const count = 4 + Math.floor(rng() * 3); // 4-6
+  const listings: UsedCarListing[] = [];
   const used = new Set<number>();
-  while (listings.length < count) {
-    const idx = Math.floor(rng() * CARS.length);
+  while (listings.length < count && used.size < MARKETABLE_CARS.length) {
+    const idx = Math.floor(rng() * MARKETABLE_CARS.length);
     if (used.has(idx)) continue;
     used.add(idx);
-    const car = CARS[idx];
-    const condition = Math.round(40 + rng() * 60); // 40-100
-    const upgrades = emptyUpgrades();
-    const preOwnedUpgradeCount = Math.floor(rng() * 3);
-    const categories = Object.keys(upgrades) as (keyof typeof upgrades)[];
-    for (let i = 0; i < preOwnedUpgradeCount; i++) {
-      const cat = categories[Math.floor(rng() * categories.length)];
-      upgrades[cat] = Math.min(10, upgrades[cat] + 1 + Math.floor(rng() * 3));
-    }
-    const conditionMult = 0.5 + (condition / 100) * 0.7;
-    const price = Math.round(car.baseValue * conditionMult * (1 + preOwnedUpgradeCount * 0.08));
+    const car = MARKETABLE_CARS[idx];
+    const condition = Math.round(55 + rng() * 45); // 55-100
+    const conditionMult = 0.55 + (condition / 100) * 0.55;
     listings.push({
-      id: `listing_${now}_${idx}`,
+      id: `listing_${expiresAtEntryId}_${idx}`,
       defId: car.id,
-      price,
+      price: Math.round(car.baseValue * conditionMult),
       condition,
-      upgrades,
-      expiresAt: now + MARKET_REFRESH_MS,
+      expiresAtEntryId,
     });
   }
   return listings;
+}
+
+export function generateDriverOffers(rng: Rng, drivers: DriverDef[], expiresAtEntryId: string): DriverOffer[] {
+  const freeAgents = drivers.filter(d => d.status === 'free_agent');
+  const count = Math.min(freeAgents.length, 3 + Math.floor(rng() * 2)); // 3-4
+  const pool = [...freeAgents];
+  const offers: DriverOffer[] = [];
+  for (let i = 0; i < count && pool.length > 0; i++) {
+    const idx = Math.floor(rng() * pool.length);
+    const driver = pool.splice(idx, 1)[0];
+    offers.push({
+      id: `offer_${expiresAtEntryId}_${driver.id}`,
+      driverId: driver.id,
+      fromTeamId: 'market',
+      salaryPerEvent: driver.salaryPerEvent,
+      durationEvents: 3,
+      expiresAtEntryId,
+    });
+  }
+  return offers;
 }

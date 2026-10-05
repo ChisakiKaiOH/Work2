@@ -1,342 +1,38 @@
 [
   {
     "id": "track_01",
-    "name": "Neon City",
-    "region": "Asia",
-    "lengthKm": 3.0,
-    "laps": 3,
-    "type": "StreetCircuit",
+    "displayName": "Monteverde Circuit",
+    "country": "Italy",
+    "lengthKm": 5.8,
+    "laps": 24,
+    "corners": 14,
     "difficulty": 4,
-    "corners": 20,
-    "straights": 5,
-    "surface": "Street",
-    "preferredConditions": [
-      "Night",
-      "Dry"
-    ],
-    "description": "Un tracciato di 3.0 km nella regione Asia, 20 curve e 5 rettilinei principali."
+    "grip": 78,
+    "overtakeDifficulty": 55,
+    "rainProbability": 0.2
   },
   {
     "id": "track_02",
-    "name": "Desert Ring",
-    "region": "MiddleEast",
-    "lengthKm": 6.0,
-    "laps": 3,
-    "type": "Circuit",
-    "difficulty": 2,
-    "corners": 15,
-    "straights": 3,
-    "surface": "Asphalt",
-    "preferredConditions": [
-      "Heat",
-      "Dry"
-    ],
-    "description": "Un tracciato di 6.0 km nella regione MiddleEast, 15 curve e 3 rettilinei principali."
+    "displayName": "Eifelring Classic",
+    "country": "Germany",
+    "lengthKm": 22.4,
+    "laps": 8,
+    "corners": 96,
+    "difficulty": 5,
+    "grip": 65,
+    "overtakeDifficulty": 70,
+    "rainProbability": 0.35
   },
   {
     "id": "track_03",
-    "name": "Alpine Pass",
-    "region": "Europe",
-    "lengthKm": 4.9,
-    "laps": 4,
-    "type": "Circuit",
-    "difficulty": 3,
-    "corners": 10,
-    "straights": 6,
-    "surface": "Mixed",
-    "preferredConditions": [
-      "Cold",
-      "Dry"
-    ],
-    "description": "Un tracciato di 4.9 km nella regione Europe, 10 curve e 6 rettilinei principali."
-  },
-  {
-    "id": "track_04",
-    "name": "Coastal Run",
-    "region": "Oceania",
+    "displayName": "Silverfield Park",
+    "country": "United Kingdom",
     "lengthKm": 4.6,
-    "laps": 4,
-    "type": "StreetCircuit",
-    "difficulty": 2,
-    "corners": 17,
-    "straights": 5,
-    "surface": "Street",
-    "preferredConditions": [
-      "Dry",
-      "Rain"
-    ],
-    "description": "Un tracciato di 4.6 km nella regione Oceania, 17 curve e 5 rettilinei principali."
-  },
-  {
-    "id": "track_05",
-    "name": "Industrial Loop",
-    "region": "Europe",
-    "lengthKm": 5.4,
-    "laps": 4,
-    "type": "Circuit",
-    "difficulty": 4,
-    "corners": 20,
-    "straights": 4,
-    "surface": "Asphalt",
-    "preferredConditions": [
-      "Dry",
-      "Night"
-    ],
-    "description": "Un tracciato di 5.4 km nella regione Europe, 20 curve e 4 rettilinei principali."
-  },
-  {
-    "id": "track_06",
-    "name": "Emerald Valley",
-    "region": "Europe",
-    "lengthKm": 3.0,
-    "laps": 4,
-    "type": "Circuit",
-    "difficulty": 2,
-    "corners": 16,
-    "straights": 6,
-    "surface": "Mixed",
-    "preferredConditions": [
-      "Dry",
-      "Rain"
-    ],
-    "description": "Un tracciato di 3.0 km nella regione Europe, 16 curve e 6 rettilinei principali."
-  },
-  {
-    "id": "track_07",
-    "name": "Black Forest",
-    "region": "Europe",
-    "lengthKm": 3.2,
-    "laps": 3,
-    "type": "Circuit",
-    "difficulty": 5,
-    "corners": 12,
-    "straights": 5,
-    "surface": "Mixed",
-    "preferredConditions": [
-      "Cold",
-      "Rain"
-    ],
-    "description": "Un tracciato di 3.2 km nella regione Europe, 12 curve e 5 rettilinei principali."
-  },
-  {
-    "id": "track_08",
-    "name": "Solar Circuit",
-    "region": "MiddleEast",
-    "lengthKm": 3.4,
-    "laps": 4,
-    "type": "Circuit",
-    "difficulty": 5,
-    "corners": 20,
-    "straights": 6,
-    "surface": "Asphalt",
-    "preferredConditions": [
-      "Heat",
-      "Dry"
-    ],
-    "description": "Un tracciato di 3.4 km nella regione MiddleEast, 20 curve e 6 rettilinei principali."
-  },
-  {
-    "id": "track_09",
-    "name": "Dragon Ridge",
-    "region": "Asia",
-    "lengthKm": 5.6,
-    "laps": 3,
-    "type": "Circuit",
-    "difficulty": 5,
-    "corners": 14,
-    "straights": 5,
-    "surface": "Mixed",
-    "preferredConditions": [
-      "Dry",
-      "Night"
-    ],
-    "description": "Un tracciato di 5.6 km nella regione Asia, 14 curve e 5 rettilinei principali."
-  },
-  {
-    "id": "track_10",
-    "name": "Metro Speedway",
-    "region": "America",
-    "lengthKm": 6.4,
-    "laps": 4,
-    "type": "StreetCircuit",
-    "difficulty": 3,
-    "corners": 8,
-    "straights": 5,
-    "surface": "Street",
-    "preferredConditions": [
-      "Night",
-      "Dry"
-    ],
-    "description": "Un tracciato di 6.4 km nella regione America, 8 curve e 5 rettilinei principali."
-  },
-  {
-    "id": "track_11",
-    "name": "Frostline Loop",
-    "region": "North",
-    "lengthKm": 5.7,
-    "laps": 4,
-    "type": "Circuit",
-    "difficulty": 2,
-    "corners": 12,
-    "straights": 6,
-    "surface": "Mixed",
-    "preferredConditions": [
-      "Cold",
-      "HeavyRain"
-    ],
-    "description": "Un tracciato di 5.7 km nella regione North, 12 curve e 6 rettilinei principali."
-  },
-  {
-    "id": "track_12",
-    "name": "Silverbay Harbor",
-    "region": "Oceania",
-    "lengthKm": 5.0,
-    "laps": 4,
-    "type": "StreetCircuit",
-    "difficulty": 3,
+    "laps": 30,
     "corners": 9,
-    "straights": 2,
-    "surface": "Street",
-    "preferredConditions": [
-      "Dry",
-      "Rain"
-    ],
-    "description": "Un tracciato di 5.0 km nella regione Oceania, 9 curve e 2 rettilinei principali."
-  },
-  {
-    "id": "track_13",
-    "name": "Crimson Dunes",
-    "region": "MiddleEast",
-    "lengthKm": 5.1,
-    "laps": 4,
-    "type": "Circuit",
-    "difficulty": 4,
-    "corners": 15,
-    "straights": 3,
-    "surface": "Asphalt",
-    "preferredConditions": [
-      "Heat",
-      "Dry"
-    ],
-    "description": "Un tracciato di 5.1 km nella regione MiddleEast, 15 curve e 3 rettilinei principali."
-  },
-  {
-    "id": "track_14",
-    "name": "Highland Circuit",
-    "region": "Europe",
-    "lengthKm": 6.1,
-    "laps": 4,
-    "type": "Circuit",
-    "difficulty": 4,
-    "corners": 16,
-    "straights": 2,
-    "surface": "Mixed",
-    "preferredConditions": [
-      "Cold",
-      "Dry"
-    ],
-    "description": "Un tracciato di 6.1 km nella regione Europe, 16 curve e 2 rettilinei principali."
-  },
-  {
-    "id": "track_15",
-    "name": "Sakura Speedway",
-    "region": "Asia",
-    "lengthKm": 3.8,
-    "laps": 5,
-    "type": "Circuit",
     "difficulty": 2,
-    "corners": 12,
-    "straights": 5,
-    "surface": "Asphalt",
-    "preferredConditions": [
-      "Dry",
-      "Night"
-    ],
-    "description": "Un tracciato di 3.8 km nella regione Asia, 12 curve e 5 rettilinei principali."
-  },
-  {
-    "id": "track_16",
-    "name": "Route Obsidian",
-    "region": "America",
-    "lengthKm": 3.0,
-    "laps": 3,
-    "type": "StreetCircuit",
-    "difficulty": 4,
-    "corners": 20,
-    "straights": 4,
-    "surface": "Street",
-    "preferredConditions": [
-      "Night",
-      "Heat"
-    ],
-    "description": "Un tracciato di 3.0 km nella regione America, 20 curve e 4 rettilinei principali."
-  },
-  {
-    "id": "track_17",
-    "name": "Tundra Grand Loop",
-    "region": "North",
-    "lengthKm": 3.6,
-    "laps": 3,
-    "type": "Circuit",
-    "difficulty": 2,
-    "corners": 18,
-    "straights": 2,
-    "surface": "Mixed",
-    "preferredConditions": [
-      "Cold",
-      "HeavyRain"
-    ],
-    "description": "Un tracciato di 3.6 km nella regione North, 18 curve e 2 rettilinei principali."
-  },
-  {
-    "id": "track_18",
-    "name": "Monsoon Raceway",
-    "region": "Asia",
-    "lengthKm": 5.1,
-    "laps": 5,
-    "type": "Circuit",
-    "difficulty": 2,
-    "corners": 10,
-    "straights": 5,
-    "surface": "Mixed",
-    "preferredConditions": [
-      "Rain",
-      "HeavyRain"
-    ],
-    "description": "Un tracciato di 5.1 km nella regione Asia, 10 curve e 5 rettilinei principali."
-  },
-  {
-    "id": "track_19",
-    "name": "Ironpeak Hillclimb",
-    "region": "North",
-    "lengthKm": 3.0,
-    "laps": 5,
-    "type": "Circuit",
-    "difficulty": 4,
-    "corners": 18,
-    "straights": 4,
-    "surface": "Mixed",
-    "preferredConditions": [
-      "Cold",
-      "Dry"
-    ],
-    "description": "Un tracciato di 3.0 km nella regione North, 18 curve e 4 rettilinei principali."
-  },
-  {
-    "id": "track_20",
-    "name": "Velocity Bay Sprint",
-    "region": "Oceania",
-    "lengthKm": 3.0,
-    "laps": 3,
-    "type": "Sprint",
-    "difficulty": 5,
-    "corners": 12,
-    "straights": 4,
-    "surface": "Asphalt",
-    "preferredConditions": [
-      "Dry",
-      "Heat"
-    ],
-    "description": "Un tracciato di 3.0 km nella regione Oceania, 12 curve e 4 rettilinei principali."
+    "grip": 82,
+    "overtakeDifficulty": 35,
+    "rainProbability": 0.3
   }
 ]

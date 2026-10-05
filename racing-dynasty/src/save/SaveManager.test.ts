@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { SaveManager } from './SaveManager';
-import { createNewPlayer } from '../game/initialState';
+import { createNewCareer } from '../game/initialState';
 
 afterEach(() => {
   SaveManager.clear();
@@ -12,19 +12,18 @@ describe('SaveManager', () => {
     expect(SaveManager.load()).toBeNull();
   });
 
-  it('round-trips a player through save/load without data loss', () => {
-    const player = { ...createNewPlayer('RoundTrip'), credits: 12345, level: 7 };
+  it('round-trips a career through save/load without data loss', () => {
+    const player = { ...createNewCareer('RoundTrip Racing', 'Tester'), currentEntryIndex: 2 };
     SaveManager.save(player);
     expect(SaveManager.hasSave()).toBe(true);
     const loaded = SaveManager.load();
     expect(loaded).not.toBeNull();
-    expect(loaded?.name).toBe('RoundTrip');
-    expect(loaded?.credits).toBe(12345);
-    expect(loaded?.level).toBe(7);
+    expect(loaded?.teams[loaded!.playerTeamId].displayName).toBe('RoundTrip Racing');
+    expect(loaded?.currentEntryIndex).toBe(2);
   });
 
   it('clear() removes the save so load() goes back to null', () => {
-    SaveManager.save(createNewPlayer('ToClear'));
+    SaveManager.save(createNewCareer('ToClear', 'Tester'));
     SaveManager.clear();
     expect(SaveManager.load()).toBeNull();
   });
@@ -35,10 +34,10 @@ describe('SaveManager', () => {
   });
 
   it('exportJson/importJson round-trip matches save/load', () => {
-    const player = createNewPlayer('Exported');
+    const player = createNewCareer('Exported', 'Tester');
     const json = SaveManager.exportJson(player);
     const imported = SaveManager.importJson(json);
-    expect(imported?.name).toBe('Exported');
+    expect(imported?.teams[imported!.playerTeamId].displayName).toBe('Exported');
   });
 
   it('importJson returns null for garbage input instead of throwing — edge case', () => {

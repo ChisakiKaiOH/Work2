@@ -1,71 +1,103 @@
 import { useGameState, useGameDispatch } from '../game/hooks';
-import { CAR_BY_ID } from '../data';
-import { carInstancePR } from '../services/performanceRating';
+import { CAR_BY_ID, TRACK_BY_ID, CHAMPIONSHIP_BY_ID } from '../data';
+import { carRating } from '../services/carRating';
 import CarArt from '../components/CarArt';
-import PRBadge from '../components/PRBadge';
 import Card from '../components/Card';
 import Button from '../components/Button';
-import type { Screen } from './navigation';
+import type { EventScreen } from './navigation';
 
-const ONE_DAY = 24 * 60 * 60 * 1000;
+const ENTRY_LABEL_IT: Record<string, string> = {
+  PRE_SEASON: 'Pre-Stagione', TEST: 'Test Privati', RACE: 'Gara', MARKET: 'Mercato',
+  AUCTION: 'Asta', CHAMPIONSHIP_END: 'Fine Campionato', SEASON_END: 'Fine Stagione',
+};
 
-export default function HomeScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
+export default function HomeScreen({ onOpenEvent }: { onOpenEvent: (screen: EventScreen) => void }) {
   const player = useGameState();
   const dispatch = useGameDispatch();
   if (!player) return null;
 
-  const selected = player.ownedCars.find(c => c.instanceId === player.selectedCarInstanceId) ?? player.ownedCars[0];
-  const selectedDef = selected ? CAR_BY_ID[selected.defId] : null;
-  const canClaimDaily = !player.lastDailyClaim || Date.now() - player.lastDailyClaim >= ONE_DAY;
-  const recent = player.raceHistory.slice(-3).reverse();
+  const team = player.teams[player.playerTeamId];
+  const entry = player.calendar[player.currentEntryIndex] ?? null;
+  const upcoming = player.calendar.slice(player.currentEntryIndex, player.currentEntryIndex + 4);
+
+  const selectedCar = player.selectedCarInstanceId ? player.cars[player.selectedCarInstanceId] : null;
+  const selectedCarDef = selectedCar ? CAR_BY_ID[selectedCar.defId] : null;
+  const selectedDriver = player.selectedDriverId ? player.drivers[player.selectedDriverId] : null;
+
+  if (!entry) {
+    const lastSeason = player.seasonHistory[player.seasonHistory.length - 1];
+    return (
+      <div className="screen home-screen">
+        <h1>{team.displayName}</h1>
+        <Card>
+          <h2>Fine dell'Era 1970</h2>
+          {lastSeason && (
+            <>
+              <p>Vittorie: {lastSeason.wins} · Podi: {lastSeason.podiums}</p>
+              <p>Guadagni stagionali: {lastSeason.moneyEarned.toLocaleString('it-IT')} ◈</p>
+            </>
+          )}
+          <p className="muted">La Fase 1 di Racing Dynasty copre la stagione 1970. Le stagioni successive arriveranno in una fase futura.</p>
+        </Card>
+      </div>
+    );
+  }
+
+  const track = entry.trackId ? TRACK_BY_ID[entry.trackId] : null;
+  const championship = entry.championshipId ? CHAMPIONSHIP_BY_ID[entry.championshipId] : null;
 
   return (
     <div className="screen home-screen">
-      <h1>Bentornato, {player.name}</h1>
+      <h1>{team.displayName}</h1>
 
-      {selectedDef && selected && (
+      {selectedCarDef && selectedCar && selectedDriver && (
         <Card className="home-car-card">
-          <CarArt silhouette={selectedDef.silhouette} colorPrimary={selectedDef.colorPrimary} colorSecondary={selectedDef.colorSecondary} size={140} />
+          <CarArt silhouette={selectedCarDef.silhouette} colorPrimary={selectedCarDef.colorPrimary} colorSecondary={selectedCarDef.colorSecondary} size={110} />
           <div className="home-car-info">
-            <div className="car-card-name">{selectedDef.name}</div>
-            <div className="car-card-brand">{selectedDef.brand}</div>
-            <PRBadge pr={carInstancePR(selectedDef, selected)} />
+            <div className="car-card-name">{selectedCarDef.displayName}</div>
+            <div className="car-card-brand">{selectedDriver.displayName}</div>
+            <span className="badge pr-badge">Rating {carRating(selectedCarDef.stats)}</span>
           </div>
-          <Button variant="secondary" onClick={() => onNavigate('garage')}>Vai al Garage</Button>
+        </Card>
+      )}
+      {(!selectedCarDef || !selectedDriver) && (
+        <Card>
+          <p className="muted">Ti serve un'auto e un pilota selezionati per correre. Vai in Garage e Piloti.</p>
         </Card>
       )}
 
-      <div className="home-quick-actions">
-        <Button fullWidth onClick={() => onNavigate('race')}>▶ Corsa libera</Button>
-        <Button fullWidth variant="secondary" onClick={() => onNavigate('world')}>World Tour &amp; Campionati</Button>
-        <Button fullWidth variant="secondary" onClick={() => onNavigate('packs')}>Apri un pacchetto</Button>
-      </div>
+      <Card className="next-event-card">
+        <span className="badge">{ENTRY_LABEL_IT[entry.type]}</span>
+        <h2>{entry.title}</h2>
+        <p className="muted">{entry.description}</p>
+        {track && <p className="muted">{track.displayName} · {track.laps} giri · {track.lengthKm} km</p>}
+        {championship && <p className="muted">{championship.displayName}</p>}
 
-      <Card className="daily-reward-card">
-        <div>
-          <strong>Ricompensa giornaliera</strong>
-          <p className="muted">Serie attuale: giorno {player.dailyRewardStreak || 0}/7</p>
-        </div>
-        <Button
-          disabled={!canClaimDaily}
-          onClick={() => dispatch({ type: 'CLAIM_DAILY_REWARD' })}
-        >
-          {canClaimDaily ? 'Ritira' : 'Ritirata'}
-        </Button>
+        {entry.type === 'RACE' && (
+          <Button fullWidth disabled={!selectedCarDef || !selectedDriver} onClick={() => onOpenEvent('race')}>
+            Vai alla gara
+          </Button>
+        )}
+        {entry.type === 'AUCTION' && (
+          <Button fullWidth onClick={() => onOpenEvent('auction')}>Vai all'asta</Button>
+        )}
+        {entry.type !== 'RACE' && entry.type !== 'AUCTION' && (
+          <Button fullWidth onClick={() => dispatch({ type: 'ADVANCE_TIME' })}>Avanza nel tempo</Button>
+        )}
       </Card>
 
-      {recent.length > 0 && (
-        <Card>
-          <strong>Ultime gare</strong>
-          <ul className="race-history-list">
-            {recent.map(r => (
-              <li key={r.raceId}>
-                Posizione {r.position}/{r.totalDrivers} · +{r.creditsEarned.toLocaleString('it-IT')} ◈ · +{r.xpEarned} XP
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+      <h2>Calendario</h2>
+      <div className="timeline">
+        {upcoming.map((e, i) => (
+          <div key={e.id} className={['timeline-item', i === 0 ? 'current' : ''].filter(Boolean).join(' ')}>
+            <span className="timeline-dot" />
+            <div>
+              <strong>{ENTRY_LABEL_IT[e.type]}</strong>
+              <p className="muted">{e.title}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

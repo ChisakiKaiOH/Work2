@@ -6,7 +6,7 @@ const RARITY_COLOR: Record<Rarity, string> = {
   Rare: '#4d8dff',
   Epic: '#b06bff',
   Legendary: '#ffb02e',
-  Mythic: '#ff4d6d',
+  Iconic: '#ff4d6d',
 };
 
 export default function RarityBadge({ rarity }: { rarity: Rarity }) {

@@ -1,0 +1,12 @@
+[
+  { "id": "mfr_ferrano", "displayName": "Ferrano", "country": "Italy", "founded": 1947 },
+  { "id": "mfr_rosso", "displayName": "Rosso Motors", "country": "Italy", "founded": 1954 },
+  { "id": "mfr_veltara", "displayName": "Veltara", "country": "Germany", "founded": 1951 },
+  { "id": "mfr_kronwerk", "displayName": "Kronwerk", "country": "Germany", "founded": 1948 },
+  { "id": "mfr_auron", "displayName": "Auron", "country": "France", "founded": 1960 },
+  { "id": "mfr_velocita", "displayName": "Velocita Motors", "country": "Italy", "founded": 1958 },
+  { "id": "mfr_titan", "displayName": "Titan Automotive", "country": "United Kingdom", "founded": 1950 },
+  { "id": "mfr_brightwood", "displayName": "Brightwood Racing", "country": "United Kingdom", "founded": 1963 },
+  { "id": "mfr_nordwind", "displayName": "Nordwind Motors", "country": "Sweden", "founded": 1959 },
+  { "id": "mfr_lupo", "displayName": "Lupo Corse", "country": "Italy", "founded": 1965 }
+]

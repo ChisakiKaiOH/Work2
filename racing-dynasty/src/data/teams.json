@@ -1,0 +1,54 @@
+[
+  {
+    "id": "team_lupo_corse",
+    "displayName": "Scuderia Lupo",
+    "ownerName": "Vittorio Lupo",
+    "founded": 1965,
+    "isPlayer": false,
+    "reputation": 68,
+    "budget": 650000,
+    "carInstanceIds": [],
+    "driverIds": [],
+    "aiProfile": { "riskTolerance": 55, "aggressiveness": 60, "budgetStrategy": "balanced" },
+    "active": true
+  },
+  {
+    "id": "team_rosso_corse",
+    "displayName": "Rosso Corse",
+    "ownerName": "Giulia Marchetti",
+    "founded": 1954,
+    "isPlayer": false,
+    "reputation": 74,
+    "budget": 820000,
+    "carInstanceIds": [],
+    "driverIds": [],
+    "aiProfile": { "riskTolerance": 45, "aggressiveness": 50, "budgetStrategy": "conservative" },
+    "active": true
+  },
+  {
+    "id": "team_titan_works",
+    "displayName": "Titan Works",
+    "ownerName": "Geoffrey Ashworth",
+    "founded": 1950,
+    "isPlayer": false,
+    "reputation": 62,
+    "budget": 540000,
+    "carInstanceIds": [],
+    "driverIds": [],
+    "aiProfile": { "riskTolerance": 65, "aggressiveness": 70, "budgetStrategy": "aggressive" },
+    "active": true
+  },
+  {
+    "id": "team_brightwood_gp",
+    "displayName": "Brightwood GP",
+    "ownerName": "Charles Winslow",
+    "founded": 1963,
+    "isPlayer": false,
+    "reputation": 58,
+    "budget": 470000,
+    "carInstanceIds": [],
+    "driverIds": [],
+    "aiProfile": { "riskTolerance": 70, "aggressiveness": 65, "budgetStrategy": "aggressive" },
+    "active": true
+  }
+]

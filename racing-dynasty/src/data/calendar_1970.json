@@ -1,0 +1,91 @@
+[
+  {
+    "id": "cal_01",
+    "type": "PRE_SEASON",
+    "date": { "year": 1970, "month": 2, "day": 1 },
+    "title": "Preparativi di Pre-Stagione",
+    "description": "Organizza la squadra prima dell'inizio della stagione: auto, piloti, budget.",
+    "fictional": true,
+    "completed": false
+  },
+  {
+    "id": "cal_02",
+    "type": "TEST",
+    "date": { "year": 1970, "month": 2, "day": 15 },
+    "title": "Test Invernali",
+    "description": "Una sessione di test privata per far crescere auto e pilota prima del via.",
+    "fictional": true,
+    "completed": false
+  },
+  {
+    "id": "cal_03",
+    "type": "RACE",
+    "date": { "year": 1970, "month": 3, "day": 1 },
+    "championshipId": "champ_1970_grand_prix",
+    "trackId": "track_01",
+    "title": "GP di Monteverde",
+    "description": "Prima gara della stagione 1970, sul tortuoso Circuito di Monteverde.",
+    "fictional": true,
+    "completed": false
+  },
+  {
+    "id": "cal_04",
+    "type": "MARKET",
+    "date": { "year": 1970, "month": 3, "day": 10 },
+    "title": "Mercato di Primavera",
+    "description": "Il mercato auto e piloti si rinnova.",
+    "fictional": true,
+    "completed": false
+  },
+  {
+    "id": "cal_05",
+    "type": "AUCTION",
+    "date": { "year": 1970, "month": 3, "day": 20 },
+    "auctionId": "auction_veltara_917k",
+    "title": "Asta: Veltara 917K",
+    "description": "Un esemplare della leggendaria Veltara 917K va all'asta. Un'occasione più unica che rara.",
+    "fictional": true,
+    "completed": false
+  },
+  {
+    "id": "cal_06",
+    "type": "RACE",
+    "date": { "year": 1970, "month": 4, "day": 5 },
+    "championshipId": "champ_1970_grand_prix",
+    "trackId": "track_02",
+    "title": "Gran Premio dell'Eifelring",
+    "description": "Il leggendario, lunghissimo e pericoloso Eifelring Classic.",
+    "fictional": true,
+    "completed": false
+  },
+  {
+    "id": "cal_07",
+    "type": "RACE",
+    "date": { "year": 1970, "month": 5, "day": 10 },
+    "championshipId": "champ_1970_grand_prix",
+    "trackId": "track_03",
+    "title": "Gran Premio di Silverfield",
+    "description": "Il veloce circuito di Silverfield Park chiude il calendario 1970.",
+    "fictional": true,
+    "completed": false
+  },
+  {
+    "id": "cal_08",
+    "type": "CHAMPIONSHIP_END",
+    "date": { "year": 1970, "month": 5, "day": 15 },
+    "championshipId": "champ_1970_grand_prix",
+    "title": "Fine Campionato 1970",
+    "description": "Vengono assegnati i titoli piloti e team del campionato 1970.",
+    "fictional": true,
+    "completed": false
+  },
+  {
+    "id": "cal_09",
+    "type": "SEASON_END",
+    "date": { "year": 1970, "month": 12, "day": 31 },
+    "title": "Fine Stagione 1970",
+    "description": "Un anno di motorsport si chiude. È tempo di bilanci.",
+    "fictional": true,
+    "completed": false
+  }
+]

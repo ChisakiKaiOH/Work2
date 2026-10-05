@@ -1,66 +1,35 @@
 # Monetization
 
-## The one rule everything else follows
+**Not built in Phase 1 — deferred on purpose.** The brief (sections 93-96)
+asks to "predisporre" (prepare for) rewarded ads, a remove-ads purchase, a
+premium currency, a starter pack and a future season pass, behind a clean
+abstraction, with two hard rules that will carry over whenever this is
+built:
 
-**The game must never require real money to play, progress, or win.** Every
-system below is designed so a free player can reach every part of the game —
-packs, upgrades, championships, the full World Tour — through normal play.
-Nothing is locked behind a purchase; purchases only save time or add cosmetic
-variety on top of a progression that already works without them.
+1. **No real money is ever redeemable.** Whatever in-game currency exists
+   is strictly virtual — there is no mechanism anywhere that converts it
+   back to real money.
+2. **The game must never require payment to play, progress, or win.** Any
+   purchase or ad can only save time or add flavor, never unlock something
+   a free player can't eventually reach.
 
-## Currencies — all virtual, always
+An earlier iteration of this project (before the Phase 1 redesign to the
+historical-manager format) had a working `AdService`/`MonetizationService`
+pair behind exactly this kind of interface — that code was removed rather
+than left in as dead, unused scaffolding wired to a currency model (packs,
+tokens) that no longer matches this game's actual economy (team budget,
+driver salaries, car purchases/rentals, auction bids). When monetization is
+actually built for this design, it should:
 
-There are exactly three currencies: **Credits**, **Tokens**, **Energy**. None
-of them can be converted back into real money, transferred between accounts,
-or cashed out in any way. "Denaro" in the game's own text always means
-Credits — a purely virtual number in `PlayerState`, nothing more.
-
-## Current state: nothing is real
-
-No payment SDK is integrated in this build. `MockMonetizationService`
-(`src/monetization/MonetizationService.ts`) simulates a short delay and then
-grants the product's virtual contents — it never contacts a store, never
-charges anything, and is safe to call from a test or a CI run. Similarly,
-`MockAdService` (`src/ads/AdService.ts`) simulates watching a rewarded ad
-(short delay, always rewards) with no real ad SDK wired in.
-
-This is intentional, not a placeholder waiting to be "finished into" a
-dark-pattern system — see the next section.
-
-## The store catalogue (`STORE_PRODUCTS`)
-
-| Product | Contents | Notes |
-|---|---|---|
-| Remove Ads | Clears `monetization.adsRemoved` | Purely a convenience flag; nothing in the game currently *shows* a blocking ad, so this removes the optional rewarded-ad prompts only |
-| Token Pack S/M/L | 100 / 550 / 650 Tokens | Larger packs include a stated bonus percentage, never a hidden one |
-| Starter Pack | 2000 Credits, 200 Tokens, 1 guaranteed Rare car | |
-| Premium Pack | 4000 Credits, 500 Tokens, 1 guaranteed Rare car | |
-
-None of these unlock a feature, track, championship or car that a free
-player can't eventually reach through normal play (races, levels,
-achievements, the daily market, pack pity).
-
-## Ads are optional and reward-only
-
-The only ad placements that exist (`AdPlacement`) are: double a race's reward,
-get a free pack, or instantly restore energy. All three are opt-in buttons the
-player can simply not tap — there is no interstitial, no forced ad, and no ad
-gating progression (energy also regenerates for free over time).
-
-## Pack odds are never hidden or manipulated beyond the documented pity
-
-See [GAME_DESIGN.md](./GAME_DESIGN.md#gacha-packs--visible-odds--pity). The
-odds shown in the Packs screen are read directly from the same `PackDef.odds`
-the opening logic uses — there is no second, more pessimistic number used
-internally.
-
-## Wiring in a real backend later
-
-When a real payment/ad SDK is integrated, only `src/monetization/
-MonetizationService.ts` and `src/ads/AdService.ts` need new implementations
-of their existing interfaces (`MonetizationService`, `AdService`) — every
-call site already goes through `monetizationService`/`adService`, never a
-concrete class, so no screen code changes. The same is true for
-`EconomyValidationService` (`src/services/backendMocks.ts`), which is the
-intended seam for a future server to re-validate purchases/rewards
-server-side rather than trusting the client.
+- Live behind an `AdService` interface (`isReady`/`show`) and a
+  `MonetizationService` interface (`getProducts`/`purchase`), each with a
+  local `Mock*` implementation so the full reward loop is buildable and
+  testable before any real SDK is integrated — this pattern is already
+  proven elsewhere in this repository's other game projects.
+- Tie rewarded-ad placements to genuine, already-existing friction points
+  once they exist in this design (e.g., a future "restore energy" or
+  "double this race's prize money" moment) rather than being added for
+  their own sake.
+- Only be built once there's a real economy value worth attaching it to —
+  building the abstraction first and the economy around it second would
+  risk exactly the kind of disconnected, unused system this project avoids.

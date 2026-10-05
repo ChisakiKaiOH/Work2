@@ -1,243 +1,370 @@
 // ---------------------------------------------------------------------------
-// Racing Dynasty — core domain types.
-// Every gameplay system (simulation, economy, progression, UI) is built on
-// top of these shapes. Game *content* (cars, tracks, events, ...) lives in
-// src/data/*.json and is typed against the Def interfaces below, so new
-// content can be added without touching any logic.
+// Racing Dynasty — Historical Motorsport Manager (1970-2026).
+// Domain model for the time-driven career sim: a calendar of events, a
+// garage of owned/rented cars, a roster of contracted/rented drivers,
+// contracts and negotiations, a used-car/driver market, auctions for
+// historically important cars, and a dynamic, decision-driven race engine.
+//
+// Every entity uses an internal id + a DISPLAY name. Display names are
+// original inventions clearly evocative of real-world motorsport eras
+// without reproducing any real manufacturer, team, driver or event name,
+// logo or photo — see ASSET_LICENSES.md and NameVariantManager.
 // ---------------------------------------------------------------------------
 
-export type CarCategory = 'Street' | 'Sport' | 'Super' | 'Hyper' | 'Prototype' | 'Legend';
+export type Era = 'CLASSIC' | 'TURBO' | 'MODERNIZATION' | 'DIGITAL' | 'HYBRID' | 'MODERN';
 
-export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary' | 'Mythic';
-
-export const RARITY_ORDER: Rarity[] = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic'];
-
-export type EngineType = 'Combustion V6' | 'Combustion V8' | 'Combustion V10' | 'Combustion V12' | 'Turbo Hybrid' | 'Electric';
-
-export type FuelType = 'Petrol' | 'Hybrid' | 'Electric' | 'Synthetic';
-
-/** Raw, un-upgraded statistics of a car, each on a roughly 0-200 scale. */
-export interface CarBaseStats {
-  power: number;
-  acceleration: number;
-  topSpeed: number;
-  braking: number;
-  grip: number;
-  stability: number;
-  reliability: number;
-  /** Lower is better; kilograms. Used by the simulator, not shown as a 0-200 bar. */
-  weight: number;
-  traction: number;
+export function eraForYear(year: number): Era {
+  if (year < 1980) return 'CLASSIC';
+  if (year < 1990) return 'TURBO';
+  if (year < 2000) return 'MODERNIZATION';
+  if (year < 2010) return 'DIGITAL';
+  if (year < 2020) return 'HYBRID';
+  return 'MODERN';
 }
 
-/** Static definition of a car model — this is what ships in cars.json. */
+// -----------------------------------------------------------------------
+// Time & calendar
+// -----------------------------------------------------------------------
+
+export interface GameDate {
+  year: number;
+  month: number; // 1-12
+  day: number; // 1-31
+}
+
+export function compareDates(a: GameDate, b: GameDate): number {
+  return a.year - b.year || a.month - b.month || a.day - b.day;
+}
+
+export function formatDate(d: GameDate): string {
+  const months = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+  return `${d.day} ${months[d.month - 1]} ${d.year}`;
+}
+
+export type CalendarEntryType =
+  | 'PRE_SEASON' | 'TEST' | 'RACE' | 'MARKET' | 'AUCTION' | 'CHAMPIONSHIP_END' | 'SEASON_END';
+
+export interface CalendarEntry {
+  id: string;
+  type: CalendarEntryType;
+  date: GameDate;
+  championshipId?: string;
+  trackId?: string;
+  auctionId?: string;
+  title: string;
+  description: string;
+  fictional: boolean;
+  completed: boolean;
+}
+
+// -----------------------------------------------------------------------
+// Manufacturers, cars
+// -----------------------------------------------------------------------
+
+export interface ManufacturerDef {
+  id: string;
+  displayName: string;
+  country: string;
+  founded: number;
+}
+
+export type CarCategory = 'Formula' | 'SportsCar' | 'GT' | 'Touring' | 'Prototype';
+export type Rarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary' | 'Iconic';
+export const RARITY_ORDER: Rarity[] = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Iconic'];
+export type CarSilhouette = 'coupe' | 'roadster' | 'hypercar' | 'prototype' | 'suv-coupe' | 'classic';
+
+export interface CarBaseStats {
+  power: number;
+  weight: number; // kg, lower is better
+  topSpeed: number;
+  handling: number;
+  braking: number;
+  reliability: number;
+  aerodynamics: number;
+}
+
+/** Static definition of a car model — what ships in cars.json. */
 export interface CarDef {
   id: string;
-  name: string;
-  brand: string;
+  displayName: string;
+  manufacturerId: string;
+  year: number;
   category: CarCategory;
   rarity: Rarity;
   stats: CarBaseStats;
-  engineType: EngineType;
-  fuel: FuelType;
   baseValue: number;
-  stars: number; // 1-6, derived from rarity but stored for display convenience
+  rentPricePerEvent: number;
+  historicalImportance: number; // 0-100; high values can trigger an auction event when the year arrives
   colorPrimary: string;
   colorSecondary: string;
   silhouette: CarSilhouette;
   description: string;
 }
 
-/** Which procedural SVG body shape a car renders with (see components/CarArt.tsx). */
-export type CarSilhouette = 'coupe' | 'roadster' | 'hypercar' | 'prototype' | 'suv-coupe' | 'classic';
+export type CarOwnership = 'owned' | 'rented';
 
-export const UPGRADE_CATEGORIES = [
-  'Engine', 'Turbo', 'ECU', 'Exhaust',
-  'Gearbox', 'Clutch', 'Differential',
-  'Suspension', 'WeightReduction', 'Chassis',
-  'BrakeSystem', 'BrakeCooling',
-] as const;
-export type UpgradeCategory = typeof UPGRADE_CATEGORIES[number];
-
-export const UPGRADE_GROUPS: Record<string, UpgradeCategory[]> = {
-  Engine: ['Engine', 'Turbo', 'ECU', 'Exhaust'],
-  Transmission: ['Gearbox', 'Clutch', 'Differential'],
-  Chassis: ['Suspension', 'WeightReduction', 'Chassis'],
-  Brakes: ['BrakeSystem', 'BrakeCooling'],
-};
-
-export const MAX_UPGRADE_LEVEL = 10;
-
-export type TireType = 'Street' | 'Sport' | 'Racing' | 'Rain' | 'WetRacing';
-
-export type Weather = 'Dry' | 'Rain' | 'HeavyRain' | 'Night' | 'Heat' | 'Cold';
-
-export type Strategy = 'Attack' | 'Balanced' | 'Defend' | 'Risky';
-
-/** A car the player actually owns, with its own upgrade/tyre/condition state. */
+/** A specific unit of a car model, owned or rented by a team. */
 export interface CarInstance {
   instanceId: string;
   defId: string;
-  acquiredAt: number;
-  upgrades: Record<UpgradeCategory, number>;
-  equippedTire: TireType;
-  xp: number;
-  racesCompleted: number;
-  wins: number;
-  favorite: boolean;
+  ownership: CarOwnership;
+  condition: number; // 0-100
+  acquiredDate: GameDate;
+  /** For rented cars: the calendar entry id after which the car must be returned. */
+  rentalReturnsAtEntryId?: string;
 }
 
-export type DriverArchetype = 'Aggressive' | 'Defensive' | 'Balanced' | 'Technical' | 'Risky';
+// -----------------------------------------------------------------------
+// Drivers
+// -----------------------------------------------------------------------
+
+export interface DriverSkills {
+  qualifying: number;
+  overtaking: number;
+  defending: number;
+  wetWeather: number;
+  tyreManagement: number;
+  fuelManagement: number;
+  consistency: number; // lowers random-event variance
+  aggressiveness: number; // raises both reward and risk
+}
+
+export type DriverStatus = 'free_agent' | 'contracted' | 'retired';
+
+export interface DriverContract {
+  teamId: string;
+  startDate: GameDate;
+  /** Contract lasts this many calendar RACE entries; null = rental for a single event. */
+  durationEvents: number;
+  eventsServed: number;
+  salaryPerEvent: number;
+}
 
 export interface DriverDef {
   id: string;
-  name: string;
-  archetype: DriverArchetype;
-  skill: number; // 0-100
-  aggressiveness: number; // 0-100
-  consistency: number; // 0-100
-  specialty: 'Technical' | 'Speed' | 'Wet' | 'Endurance' | 'AllRound';
-  unlockLevel: number;
-  avatarSeed: string;
+  displayName: string;
+  nationality: string;
+  birthYear: number;
+  rating: number; // 0-100, current overall ability
+  potential: number; // 0-100, ceiling rating can grow toward
+  experience: number; // 0-100
+  popularity: number; // 0-100
+  skills: DriverSkills;
+  salaryPerEvent: number; // base market salary
+  rentPricePerEvent: number;
+  marketValue: number;
+  status: DriverStatus;
+  contract?: DriverContract;
+  teamId?: string;
+  form: number; // -20..+20, short-term modifier from recent results
+  morale: number; // 0-100
 }
 
-export type TrackSurface = 'Asphalt' | 'Street' | 'Mixed' | 'Concrete';
-export type TrackType = 'Circuit' | 'StreetCircuit' | 'Sprint' | 'Endurance';
+// -----------------------------------------------------------------------
+// Teams
+// -----------------------------------------------------------------------
+
+export interface AiTeamProfile {
+  riskTolerance: number; // 0-100
+  aggressiveness: number; // 0-100
+  budgetStrategy: 'conservative' | 'balanced' | 'aggressive';
+}
+
+export interface TeamDef {
+  id: string;
+  displayName: string;
+  ownerName: string;
+  founded: number;
+  isPlayer: boolean;
+  reputation: number; // 0-100
+  budget: number;
+  carInstanceIds: string[];
+  driverIds: string[];
+  aiProfile?: AiTeamProfile;
+  active: boolean;
+  foldedDate?: GameDate;
+}
+
+// -----------------------------------------------------------------------
+// Tracks & championships
+// -----------------------------------------------------------------------
 
 export interface TrackDef {
   id: string;
-  name: string;
-  region: Region;
+  displayName: string;
+  country: string;
   lengthKm: number;
   laps: number;
-  type: TrackType;
-  difficulty: number; // 1-5
   corners: number;
-  straights: number;
-  surface: TrackSurface;
-  preferredConditions: Weather[];
-  description: string;
+  difficulty: number; // 1-5
+  grip: number; // 0-100
+  overtakeDifficulty: number; // 0-100, higher = harder to pass
+  rainProbability: number; // 0-1
 }
-
-export type Region = 'Europe' | 'Asia' | 'America' | 'Oceania' | 'MiddleEast' | 'North';
 
 export interface ChampionshipDef {
   id: string;
-  name: string;
-  tier: 'Rookie' | 'Street' | 'Sport' | 'Super' | 'Hyper' | 'Legend';
-  region: Region;
-  requiredPR: number;
-  trackIds: string[]; // 5 races
-  creditReward: number;
-  tokenReward: number;
-  carRewardId?: string;
-  description: string;
+  displayName: string;
+  year: number;
+  category: CarCategory;
+  trackIds: string[]; // ordered calendar of races
+  pointsForPosition: number[]; // index 0 = 1st place points
+  prizeMoneyPool: number;
+  fictional: boolean;
 }
 
-export interface BossDef {
-  id: string;
-  name: string;
-  region: Region;
-  personality: string;
+export interface ChampionshipStandingEntry {
+  entrantId: string; // driverId for driver standings, teamId for team standings
+  points: number;
+  wins: number;
+  podiums: number;
+}
+
+export interface ChampionshipProgress {
+  championshipId: string;
+  racesCompleted: number;
+  driverStandings: Record<string, ChampionshipStandingEntry>;
+  teamStandings: Record<string, ChampionshipStandingEntry>;
+}
+
+// -----------------------------------------------------------------------
+// Race engine — dynamic, decision-driven (never just PR > opponent)
+// -----------------------------------------------------------------------
+
+export type Weather = 'Dry' | 'LightRain' | 'HeavyRain';
+
+export interface RaceParticipant {
+  id: string; // `${teamId}:${driverId}`
+  teamId: string;
+  driverId: string;
+  driverName: string;
+  teamName: string;
+  carInstanceId: string | null; // null for AI-generated filler entrants
   carDefId: string;
-  pr: number;
-  strategyPreference: Strategy;
-  specialty: string;
-  dialogueIntro: string;
-  dialogueLose: string;
-  dialogueWin: string;
-  rewardCredits: number;
-  rewardTokens: number;
-  rewardCarId?: string;
+  isPlayer: boolean;
+  /**
+   * A snapshot of the driver's live stats at race time. Unlike cars (static
+   * catalogue data, looked up by id), driver ratings/skills/form live in
+   * mutable PlayerState, so the engine needs the actual object rather than
+   * an id it could re-resolve itself.
+   */
+  driverRef: DriverDef;
 }
 
-export type PackCurrency = 'credits' | 'tokens';
+export type DecisionId =
+  | 'ATTACK' | 'DEFEND' | 'WAIT' | 'PUSH_HARD' | 'LATE_BRAKING' | 'SAVE_TIRES'
+  | 'UNDERCUT_PIT' | 'STAY_OUT';
 
-export interface PackOdds {
-  Common: number;
-  Uncommon: number;
-  Rare: number;
-  Epic: number;
-  Legendary: number;
-  Mythic: number;
+export interface DecisionOption {
+  id: DecisionId;
+  label: string;
+  successChance: number; // 0-100, already resolved with all modifiers
+  risk: 'LOW' | 'MEDIUM' | 'HIGH';
+  rewardDescription: string;
+  penaltyDescription: string;
 }
 
-export interface PackDef {
-  id: string;
-  name: string;
+export interface LapDecisionPoint {
+  lap: number;
+  context: string; // short flavor text describing the situation
+  options: DecisionOption[];
+}
+
+export type RaceEventType =
+  | 'OVERTAKE' | 'DEFEND_HOLD' | 'LATE_BRAKING' | 'PIT_STOP' | 'UNDERCUT' | 'SAVE_TIRES_OK'
+  | 'DRIVER_ERROR' | 'LOCKUP' | 'SPIN' | 'MECHANICAL_FAILURE' | 'TRAFFIC'
+  | 'WEATHER_CHANGE' | 'SAFETY_CAR' | 'PENALTY' | 'FASTEST_LAP';
+
+export interface RaceEvent {
+  lap: number;
+  type: RaceEventType;
+  participantId: string;
+  targetId?: string;
   description: string;
-  carCount: number;
-  price: number;
-  currency: PackCurrency;
-  odds: PackOdds;
-  categoryPool?: CarCategory[];
-  pityThreshold: number; // openings without Epic+ before odds start climbing
-  guaranteedRarityAt: Rarity; // the pity floor rarity
-  limited?: boolean;
 }
 
-export type EventType =
-  | 'DailyRace' | 'DailyChallenge' | 'WeekendChampionship' | 'ManufacturerChallenge'
-  | 'BossChallenge' | 'LegendaryEvent' | 'RainChallenge' | 'NightRace' | 'EnduranceEvent';
-
-export interface EventDef {
-  id: string;
+export interface RaceResultEntry {
+  participantId: string;
   name: string;
-  type: EventType;
+  teamName: string;
+  isPlayer: boolean;
+  position: number;
+  gapToLeaderSec: number;
+  dnf: boolean;
+  points: number;
+}
+
+export interface RaceResult {
+  championshipId?: string;
   trackId: string;
   weather: Weather;
-  requiredCategory?: CarCategory;
-  requiredBrand?: string;
-  creditReward: number;
-  tokenReward: number;
-  xpReward: number;
-  description: string;
+  laps: number;
+  standings: RaceResultEntry[];
+  events: RaceEvent[];
+  decisionsLog: { lap: number; chosen: DecisionId; success: boolean }[];
+  playerPosition: number;
+  playerDnf: boolean;
+  prizeMoney: number;
+  reputationGained: number;
+  driverExperienceGained: number;
 }
 
-export interface AchievementDef {
-  id: string;
-  name: string;
-  description: string;
-  condition: AchievementCondition;
-  rewardCredits: number;
-  rewardTokens: number;
+export interface RaceInput {
+  player: RaceParticipant;
+  field: RaceParticipant[]; // AI opponents, does not include player
+  track: TrackDef;
+  weather: Weather;
+  championshipId?: string;
+  pointsForPosition?: number[];
+  seed?: number;
 }
 
-export type AchievementCondition =
-  | { type: 'racesCompleted'; count: number }
-  | { type: 'racesWon'; count: number }
-  | { type: 'creditsEarned'; count: number }
-  | { type: 'carsOwned'; count: number }
-  | { type: 'championshipsWon'; count: number }
-  | { type: 'bossesDefeated'; count: number }
-  | { type: 'legendaryCarsOwned'; count: number }
-  | { type: 'playerLevel'; count: number }
-  | { type: 'collectionsCompleted'; count: number }
-  | { type: 'maxUpgradesOnCar'; count: number };
+// -----------------------------------------------------------------------
+// Market, contracts, auctions
+// -----------------------------------------------------------------------
 
-export type DailyRewardKind = 'credits' | 'energy' | 'upgradeParts' | 'tokens' | 'pack' | 'premiumPack';
-
-export interface DailyRewardDay {
-  day: number;
-  kind: DailyRewardKind;
-  amount: number;
-}
-
-export interface MarketListing {
+export interface UsedCarListing {
   id: string;
   defId: string;
   price: number;
-  condition: number; // 0-100
-  upgrades: Record<UpgradeCategory, number>;
-  expiresAt: number;
+  condition: number;
+  expiresAtEntryId: string;
 }
 
-export interface CollectionCategoryDef {
+export interface DriverOffer {
   id: string;
-  name: string;
-  carDefIds: string[];
-  rewardCredits: number;
-  rewardTokens: number;
+  driverId: string;
+  fromTeamId: string; // rival team making the player an offer to poach a contracted driver, or "market" for a free agent
+  salaryPerEvent: number;
+  durationEvents: number;
+  expiresAtEntryId: string;
+}
+
+/** Static template for an auction event, as it ships in auctions.json. */
+export interface AuctionDef {
+  id: string;
+  carDefId: string;
+  startingPrice: number;
+  bidIncrement: number;
+  maxRounds: number;
+}
+
+export interface AuctionBid {
+  bidderId: string; // teamId, or 'player'
+  bidderName: string;
+  amount: number;
+}
+
+export interface AuctionState {
+  id: string;
+  carDefId: string;
+  startingPrice: number;
+  bidIncrement: number;
+  currentBid: AuctionBid;
+  bids: AuctionBid[];
+  rounds: number;
+  maxRounds: number;
+  status: 'open' | 'won_by_player' | 'won_by_rival' | 'passed';
 }
 
 // -----------------------------------------------------------------------
@@ -248,132 +375,55 @@ export interface Settings {
   musicOn: boolean;
   soundOn: boolean;
   notificationsOn: boolean;
-  graphicsQuality: 'Low' | 'Medium' | 'High';
-  batterySaver: boolean;
   language: 'it' | 'en';
 }
 
-export interface MonetizationFlags {
-  adsRemoved: boolean;
+export interface FinanceLedgerEntry {
+  date: GameDate;
+  label: string;
+  amount: number; // positive = income, negative = expense
 }
 
-export interface PackPity {
-  [packId: string]: number; // openings since last Epic+ pull
+export interface SeasonRecord {
+  year: number;
+  championshipId: string;
+  teamStanding: number;
+  driverStanding: number;
+  wins: number;
+  podiums: number;
+  moneyEarned: number;
 }
 
 export interface PlayerState {
-  createdAt: number;
-  name: string;
-  level: number;
-  xp: number;
-  credits: number;
-  tokens: number;
-  upgradeParts: number;
-  energy: number;
-  maxEnergy: number;
-  lastEnergyTick: number;
+  saveVersion: number;
+  currentDate: GameDate;
+  playerTeamId: string;
 
-  ownedCars: CarInstance[];
+  teams: Record<string, TeamDef>;
+  cars: Record<string, CarInstance>;
+  drivers: Record<string, DriverDef>;
   selectedCarInstanceId: string | null;
-  garageSlots: number;
-
-  ownedDriverIds: string[];
   selectedDriverId: string | null;
 
-  championshipProgress: Record<string, { racesWon: number; completed: boolean; standing: number }>;
-  bossesDefeated: string[];
-  completedRaceCount: number;
-  wonRaceCount: number;
-  totalCreditsEarned: number;
+  calendar: CalendarEntry[];
+  currentEntryIndex: number;
 
+  championships: Record<string, ChampionshipDef>;
+  championshipProgress: Record<string, ChampionshipProgress>;
+
+  usedCarMarket: UsedCarListing[];
+  driverOffers: DriverOffer[];
+  marketGeneratedAtEntryId: string | null;
+
+  activeAuction: AuctionState | null;
+
+  finance: {
+    ledger: FinanceLedgerEntry[];
+  };
+
+  seasonHistory: SeasonRecord[];
   achievementsUnlocked: string[];
-  dailyRewardStreak: number;
-  lastDailyClaim: number | null;
-
-  marketListings: MarketListing[];
-  marketGeneratedAt: number | null;
-
-  packPity: PackPity;
-  collectionProgress: Record<string, boolean>;
+  notifications: { id: string; date: GameDate; title: string; body: string; read: boolean }[];
 
   settings: Settings;
-  monetization: MonetizationFlags;
-
-  tutorialCompleted: boolean;
-  firstCarChosen: boolean;
-
-  raceHistory: RaceHistoryEntry[];
-}
-
-export interface RaceHistoryEntry {
-  raceId: string;
-  trackId: string;
-  position: number;
-  totalDrivers: number;
-  creditsEarned: number;
-  xpEarned: number;
-  timestamp: number;
-}
-
-// -----------------------------------------------------------------------
-// Race simulation
-// -----------------------------------------------------------------------
-
-export interface RaceParticipant {
-  id: string;
-  name: string;
-  isPlayer: boolean;
-  carDef: CarDef;
-  carInstance: CarInstance | null; // null for AI-generated opponents
-  driver: DriverDef;
-  strategy: Strategy;
-  pr: number;
-}
-
-export interface RaceEvent {
-  lap: number;
-  type: 'overtake' | 'pit' | 'incident' | 'fastestLap' | 'mechanicalFailure' | 'weatherChange';
-  participantId: string;
-  targetId?: string;
-  description: string;
-}
-
-export interface RaceLapRecord {
-  lap: number;
-  order: string[]; // participant ids, position order
-}
-
-export interface RaceResultEntry {
-  participantId: string;
-  name: string;
-  isPlayer: boolean;
-  position: number;
-  totalTimeSec: number;
-  gapToLeaderSec: number;
-  pitStops: number;
-  overtakes: number;
-  dnf: boolean;
-}
-
-export interface RaceResult {
-  trackId: string;
-  weather: Weather;
-  laps: number;
-  standings: RaceResultEntry[];
-  lapHistory: RaceLapRecord[];
-  events: RaceEvent[];
-  playerPosition: number;
-  playerDnf: boolean;
-  creditsEarned: number;
-  xpEarned: number;
-  bonusCredits: number;
-  drops: { kind: 'car' | 'upgradePart' | 'tokens'; id?: string; amount?: number }[];
-}
-
-export interface RaceInput {
-  player: RaceParticipant;
-  opponents: RaceParticipant[];
-  track: TrackDef;
-  weather: Weather;
-  seed?: number;
 }

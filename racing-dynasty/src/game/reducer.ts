@@ -1,95 +1,79 @@
-import type { PlayerState } from '../types';
+import type { PlayerState, CalendarEntry, SeasonRecord, DriverDef } from '../types';
 import type { GameAction } from './actions';
-import { createNewPlayer, createCarInstance } from './initialState';
-import { canAfford, spend, add, clamp } from '../services/economy';
-import { applyXp, maxEnergyForLevel, tickEnergy, ENERGY_PER_RACE } from '../services/progression';
-import { checkNewAchievements } from '../services/achievements';
-import { generateMarket, MARKET_REFRESH_MS } from '../services/market';
-import { openPack } from '../services/packs';
-import { upgradeCost, isMaxLevel } from '../services/performanceRating';
-import { CAR_BY_ID, ACHIEVEMENTS, PACK_BY_ID, DAILY_REWARDS, CHAMPIONSHIPS, BOSSES, COLLECTIONS } from '../data';
-import { hashSeed, mulberry32 } from '../simulation/rng';
+import { createNewCareer } from './initialState';
+import { canAfford, applyTransaction } from '../services/finance';
+import { hireDriver, rentDriverForOneEvent, releaseDriver, tickDriverContract } from '../services/contracts';
+import { createCarInstance } from '../services/cars';
+import { generateUsedCarMarket, generateDriverOffers } from '../services/market';
+import { startAuction, placePlayerBid, resolveRivalRound, closeAuction, minimumNextBid } from '../services/auctions';
+import { CAR_BY_ID, AUCTION_BY_ID } from '../data';
+import { hashSeed, mulberry32 } from '../sim/rng';
 
-function grantCurrency(player: PlayerState, credits: number, tokens: number): PlayerState {
-  return {
-    ...player,
-    credits: add(player.credits, credits),
-    tokens: add(player.tokens, tokens),
-    totalCreditsEarned: credits > 0 ? player.totalCreditsEarned + credits : player.totalCreditsEarned,
-  };
+function currentEntry(state: PlayerState): CalendarEntry | null {
+  return state.calendar[state.currentEntryIndex] ?? null;
 }
 
-function grantXp(player: PlayerState, xp: number): PlayerState {
-  const { level, xp: newXp, rewards } = applyXp(player.level, player.xp, xp);
-  let next: PlayerState = { ...player, level, xp: newXp, maxEnergy: maxEnergyForLevel(level) };
-  for (const r of rewards) {
-    next = grantCurrency(next, r.credits, r.tokens);
-    next = { ...next, energy: clamp(next.energy + r.energy, 0, next.maxEnergy) };
+/** Runs the auto side-effects for whichever entry just became "current" (market refresh, auction start). */
+function initializeEnteredEntry(state: PlayerState): PlayerState {
+  const entry = currentEntry(state);
+  if (!entry) return state;
+  let next = state;
+
+  if (entry.type === 'MARKET' && state.marketGeneratedAtEntryId !== entry.id) {
+    const rng = mulberry32(hashSeed(`market_${entry.id}`));
+    next = {
+      ...next,
+      usedCarMarket: generateUsedCarMarket(rng, entry.id),
+      driverOffers: generateDriverOffers(rng, Object.values(next.drivers), entry.id),
+      marketGeneratedAtEntryId: entry.id,
+    };
   }
-  return next;
-}
 
-function applyAchievements(player: PlayerState): PlayerState {
-  const newly = checkNewAchievements(player);
-  if (!newly.length) return player;
-  let next = player;
-  for (const id of newly) {
-    const def = ACHIEVEMENTS.find(a => a.id === id);
-    if (!def) continue;
-    next = grantCurrency(next, def.rewardCredits, def.rewardTokens);
+  if (entry.type === 'AUCTION' && entry.auctionId && !next.activeAuction) {
+    const def = AUCTION_BY_ID[entry.auctionId];
+    if (def) next = { ...next, activeAuction: startAuction(def) };
   }
-  return { ...next, achievementsUnlocked: [...next.achievementsUnlocked, ...newly] };
+
+  return { ...next, currentDate: entry.date };
 }
 
-function updateCollectionProgress(player: PlayerState): PlayerState {
-  const ownedDefIds = new Set(player.ownedCars.map(c => c.defId));
-  const progress = { ...player.collectionProgress };
-  let creditsGain = 0, tokensGain = 0;
-  let changed = false;
-  for (const col of COLLECTIONS) {
-    const already = progress[col.id] === true;
-    const complete = col.carDefIds.every(id => ownedDefIds.has(id));
-    if (complete && !already) {
-      progress[col.id] = true;
-      creditsGain += col.rewardCredits;
-      tokensGain += col.rewardTokens;
-      changed = true;
+function completeCurrentAndAdvance(state: PlayerState): PlayerState {
+  const entry = currentEntry(state);
+  if (!entry) return state;
+  const calendar = state.calendar.map(e => (e.id === entry.id ? { ...e, completed: true } : e));
+  const advanced = { ...state, calendar, currentEntryIndex: state.currentEntryIndex + 1 };
+  return initializeEnteredEntry(advanced);
+}
+
+function returnExpiredRentals(state: PlayerState, completedEntryId: string): PlayerState {
+  const team = state.teams[state.playerTeamId];
+  const stillHeld: string[] = [];
+  const cars = { ...state.cars };
+  for (const instanceId of team.carInstanceIds) {
+    const instance = cars[instanceId];
+    if (instance && instance.ownership === 'rented' && instance.rentalReturnsAtEntryId === completedEntryId) {
+      delete cars[instanceId];
+    } else {
+      stillHeld.push(instanceId);
     }
   }
-  if (!changed) return player;
-  return grantCurrency({ ...player, collectionProgress: progress }, creditsGain, tokensGain);
-}
-
-function ensureMarket(player: PlayerState): PlayerState {
-  const now = Date.now();
-  if (player.marketGeneratedAt && now - player.marketGeneratedAt < MARKET_REFRESH_MS && player.marketListings.length) {
-    return player;
-  }
-  const rng = mulberry32(hashSeed(`market_${Math.floor(now / MARKET_REFRESH_MS)}`));
-  return { ...player, marketListings: generateMarket(rng, now), marketGeneratedAt: now };
-}
-
-function postProcess(player: PlayerState): PlayerState {
-  let next = applyAchievements(player);
-  next = updateCollectionProgress(next);
-  next = ensureMarket(next);
-  return next;
+  const selectedCarInstanceId = stillHeld.includes(state.selectedCarInstanceId ?? '') ? state.selectedCarInstanceId : null;
+  return {
+    ...state,
+    cars,
+    teams: { ...state.teams, [team.id]: { ...team, carInstanceIds: stillHeld } },
+    selectedCarInstanceId,
+  };
 }
 
 export function gameReducer(state: PlayerState | null, action: GameAction): PlayerState | null {
   switch (action.type) {
-    case 'NEW_GAME': {
-      return postProcess(ensureMarket(createNewPlayer(action.name)));
-    }
-
-    case 'LOAD_SAVE': {
-      return postProcess(action.player);
-    }
-
-    case 'RESET_SAVE': {
+    case 'NEW_CAREER':
+      return initializeEnteredEntry(createNewCareer(action.teamName, action.ownerName));
+    case 'LOAD_SAVE':
+      return action.player;
+    case 'RESET_SAVE':
       return null;
-    }
-
     default:
       break;
   }
@@ -97,292 +81,286 @@ export function gameReducer(state: PlayerState | null, action: GameAction): Play
   if (!state) return state;
 
   switch (action.type) {
-    case 'CHOOSE_STARTER_CAR': {
-      if (state.firstCarChosen) return state;
-      const instance = createCarInstance(action.carDefId);
-      return postProcess({
-        ...state,
-        ownedCars: [...state.ownedCars, instance],
-        selectedCarInstanceId: instance.instanceId,
-        firstCarChosen: true,
-      });
-    }
+    case 'ADVANCE_TIME': {
+      const entry = currentEntry(state);
+      if (!entry || entry.type === 'RACE') return state;
 
-    case 'COMPLETE_TUTORIAL':
-      return { ...state, tutorialCompleted: true };
+      let next = state;
+      const team = next.teams[next.playerTeamId];
 
-    case 'SELECT_CAR':
-      if (!state.ownedCars.some(c => c.instanceId === action.instanceId)) return state;
-      return { ...state, selectedCarInstanceId: action.instanceId };
-
-    case 'SELECT_DRIVER':
-      if (!state.ownedDriverIds.includes(action.driverId)) return state;
-      return { ...state, selectedDriverId: action.driverId };
-
-    case 'TOGGLE_FAVORITE': {
-      return {
-        ...state,
-        ownedCars: state.ownedCars.map(c => c.instanceId === action.instanceId ? { ...c, favorite: !c.favorite } : c),
-      };
-    }
-
-    case 'EQUIP_TIRE': {
-      return {
-        ...state,
-        ownedCars: state.ownedCars.map(c => c.instanceId === action.instanceId ? { ...c, equippedTire: action.tire } : c),
-      };
-    }
-
-    case 'UPGRADE_CAR': {
-      const car = state.ownedCars.find(c => c.instanceId === action.instanceId);
-      if (!car) return state;
-      const level = car.upgrades[action.category];
-      if (isMaxLevel(level)) return state;
-      let cost = upgradeCost(action.category, level);
-      let usePart = false;
-      if (state.upgradeParts > 0) {
-        cost = Math.round(cost * 0.75);
-        usePart = true;
+      if (entry.type === 'TEST' && next.selectedDriverId) {
+        const driver = next.drivers[next.selectedDriverId];
+        if (driver) {
+          const grown: DriverDef = {
+            ...driver,
+            experience: Math.min(100, driver.experience + 2),
+            rating: Math.min(driver.potential, driver.rating + 1),
+          };
+          const testCost = 8000;
+          const canPay = canAfford(team.budget, testCost);
+          const { team: billedTeam, ledger } = canPay
+            ? applyTransaction(team, next.finance.ledger, next.currentDate, 'Sessione di test privata', -testCost)
+            : { team, ledger: next.finance.ledger };
+          next = {
+            ...next,
+            drivers: { ...next.drivers, [driver.id]: grown },
+            teams: { ...next.teams, [team.id]: billedTeam },
+            finance: { ledger },
+          };
+        }
       }
-      if (!canAfford(state.credits, cost)) return state;
-      const credits = spend(state.credits, cost, 'credits');
-      const ownedCars = state.ownedCars.map(c =>
-        c.instanceId === action.instanceId
-          ? { ...c, upgrades: { ...c.upgrades, [action.category]: level + 1 } }
-          : c
-      );
-      return postProcess({
+
+      if (entry.type === 'SEASON_END') {
+        const progressValues = Object.values(next.championshipProgress);
+        const playerDriverStanding = progressValues[0]?.driverStandings[next.selectedDriverId ?? ''] ?? null;
+        const record: SeasonRecord = {
+          year: entry.date.year,
+          championshipId: progressValues[0]?.championshipId ?? '',
+          teamStanding: 1,
+          driverStanding: 1,
+          wins: playerDriverStanding?.wins ?? 0,
+          podiums: playerDriverStanding?.podiums ?? 0,
+          moneyEarned: next.finance.ledger.filter(l => l.date.year === entry.date.year && l.amount > 0).reduce((s, l) => s + l.amount, 0),
+        };
+        next = { ...next, seasonHistory: [...next.seasonHistory, record] };
+      }
+
+      return completeCurrentAndAdvance(next);
+    }
+
+    case 'BUY_CAR': {
+      const listing = state.usedCarMarket.find(l => l.id === action.listingId);
+      const team = state.teams[state.playerTeamId];
+      if (!listing || !canAfford(team.budget, listing.price)) return state;
+      const def = CAR_BY_ID[listing.defId];
+      if (!def) return state;
+      const instance = createCarInstance(listing.defId, state.currentDate, 'owned');
+      instance.condition = listing.condition;
+      const { team: billedTeam, ledger } = applyTransaction(team, state.finance.ledger, state.currentDate, `Acquisto ${def.displayName}`, -listing.price);
+      return {
         ...state,
-        credits,
-        upgradeParts: usePart ? state.upgradeParts - 1 : state.upgradeParts,
-        ownedCars,
-      });
+        cars: { ...state.cars, [instance.instanceId]: instance },
+        teams: { ...state.teams, [team.id]: { ...billedTeam, carInstanceIds: [...billedTeam.carInstanceIds, instance.instanceId] } },
+        usedCarMarket: state.usedCarMarket.filter(l => l.id !== action.listingId),
+        finance: { ledger },
+      };
+    }
+
+    case 'RENT_CAR': {
+      const def = CAR_BY_ID[action.defId];
+      const team = state.teams[state.playerTeamId];
+      if (!def) return state;
+      const price = action.durationEvents === 3 ? Math.round(def.rentPricePerEvent * 3 * 0.9) : def.rentPricePerEvent;
+      if (!canAfford(team.budget, price)) return state;
+
+      const raceEntries = state.calendar.slice(state.currentEntryIndex).filter(e => e.type === 'RACE');
+      const returnEntry = raceEntries[action.durationEvents - 1] ?? state.calendar[state.calendar.length - 1];
+      const instance = createCarInstance(action.defId, state.currentDate, 'rented', returnEntry?.id);
+
+      const { team: billedTeam, ledger } = applyTransaction(team, state.finance.ledger, state.currentDate, `Noleggio ${def.displayName}`, -price);
+      return {
+        ...state,
+        cars: { ...state.cars, [instance.instanceId]: instance },
+        teams: { ...state.teams, [team.id]: { ...billedTeam, carInstanceIds: [...billedTeam.carInstanceIds, instance.instanceId] } },
+        finance: { ledger },
+      };
+    }
+
+    case 'SELL_CAR': {
+      const instance = state.cars[action.instanceId];
+      const team = state.teams[state.playerTeamId];
+      if (!instance || instance.ownership !== 'owned' || !team.carInstanceIds.includes(action.instanceId)) return state;
+      const def = CAR_BY_ID[instance.defId];
+      if (!def) return state;
+      const saleValue = Math.round(def.baseValue * (instance.condition / 100) * 0.7);
+      const { team: billedTeam, ledger } = applyTransaction(team, state.finance.ledger, state.currentDate, `Vendita ${def.displayName}`, saleValue);
+      const cars = { ...state.cars };
+      delete cars[action.instanceId];
+      return {
+        ...state,
+        cars,
+        teams: { ...state.teams, [team.id]: { ...billedTeam, carInstanceIds: billedTeam.carInstanceIds.filter(id => id !== action.instanceId) } },
+        selectedCarInstanceId: state.selectedCarInstanceId === action.instanceId ? null : state.selectedCarInstanceId,
+        finance: { ledger },
+      };
+    }
+
+    case 'HIRE_DRIVER': {
+      const driver = state.drivers[action.driverId];
+      if (!driver || driver.status !== 'free_agent') return state;
+      const hired = hireDriver(driver, state.playerTeamId, state.currentDate, action.durationEvents, action.salaryPerEvent);
+      const team = state.teams[state.playerTeamId];
+      return {
+        ...state,
+        drivers: { ...state.drivers, [driver.id]: hired },
+        teams: { ...state.teams, [team.id]: { ...team, driverIds: [...team.driverIds, driver.id] } },
+      };
+    }
+
+    case 'RENT_DRIVER': {
+      const driver = state.drivers[action.driverId];
+      const team = state.teams[state.playerTeamId];
+      if (!driver || driver.status !== 'free_agent' || !canAfford(team.budget, driver.rentPricePerEvent)) return state;
+      const rented = rentDriverForOneEvent(driver, state.playerTeamId, state.currentDate);
+      const { team: billedTeam, ledger } = applyTransaction(team, state.finance.ledger, state.currentDate, `Noleggio pilota ${driver.displayName}`, -driver.rentPricePerEvent);
+      return {
+        ...state,
+        drivers: { ...state.drivers, [driver.id]: rented },
+        teams: { ...state.teams, [team.id]: { ...billedTeam, driverIds: [...billedTeam.driverIds, driver.id] } },
+        finance: { ledger },
+      };
+    }
+
+    case 'RELEASE_DRIVER': {
+      const driver = state.drivers[action.driverId];
+      const team = state.teams[state.playerTeamId];
+      if (!driver || driver.teamId !== state.playerTeamId) return state;
+      const released = releaseDriver(driver);
+      return {
+        ...state,
+        drivers: { ...state.drivers, [driver.id]: released },
+        teams: { ...state.teams, [team.id]: { ...team, driverIds: team.driverIds.filter(id => id !== action.driverId) } },
+        selectedDriverId: state.selectedDriverId === action.driverId ? null : state.selectedDriverId,
+      };
+    }
+
+    case 'SELECT_RACE_CAR': {
+      const team = state.teams[state.playerTeamId];
+      if (!team.carInstanceIds.includes(action.instanceId)) return state;
+      return { ...state, selectedCarInstanceId: action.instanceId };
+    }
+
+    case 'SELECT_RACE_DRIVER': {
+      const team = state.teams[state.playerTeamId];
+      if (!team.driverIds.includes(action.driverId)) return state;
+      return { ...state, selectedDriverId: action.driverId };
+    }
+
+    case 'AUCTION_BID': {
+      const auction = state.activeAuction;
+      const team = state.teams[state.playerTeamId];
+      if (!auction || auction.status !== 'open') return state;
+      const amount = minimumNextBid(auction);
+      if (!canAfford(team.budget, amount)) return state;
+
+      let updated = placePlayerBid(auction, amount);
+      const rivals = Object.values(state.teams).filter(t => !t.isPlayer && t.active);
+      const rng = mulberry32(hashSeed(`auction_${auction.id}_${updated.rounds}`));
+      updated = resolveRivalRound(updated, rivals, rng);
+
+      if (updated.rounds >= updated.maxRounds) {
+        return resolveAuctionClose(state, closeAuction(updated));
+      }
+      return { ...state, activeAuction: updated };
+    }
+
+    case 'AUCTION_PASS': {
+      const auction = state.activeAuction;
+      if (!auction) return state;
+      return resolveAuctionClose(state, closeAuction(auction));
     }
 
     case 'APPLY_RACE_RESULT': {
-      const { result, instanceId, source } = action;
-      if (state.energy < ENERGY_PER_RACE) return state;
+      const { result } = action;
+      const entry = currentEntry(state);
+      if (!entry || entry.type !== 'RACE' || !state.selectedDriverId) return state;
+
+      let team = state.teams[state.playerTeamId];
+      let ledger = state.finance.ledger;
+      let drivers = { ...state.drivers };
+
+      for (const driverId of team.driverIds) {
+        const driver = drivers[driverId];
+        if (driver.status === 'contracted' && driver.contract) {
+          const billed = applyTransaction(team, ledger, state.currentDate, `Stipendio ${driver.displayName}`, -driver.contract.salaryPerEvent);
+          team = billed.team;
+          ledger = billed.ledger;
+          drivers[driverId] = tickDriverContract(driver);
+        }
+      }
+
+      const prizeResult = applyTransaction(team, ledger, state.currentDate, `Montepremi — ${entry.title}`, result.prizeMoney);
+      team = prizeResult.team;
+      ledger = prizeResult.ledger;
+      team = { ...team, reputation: Math.max(0, Math.min(100, team.reputation + result.reputationGained)) };
+
+      const racer = drivers[state.selectedDriverId];
+      if (racer) {
+        const podium = !result.playerDnf && result.playerPosition <= 3;
+        drivers[racer.id] = {
+          ...racer,
+          experience: Math.min(100, racer.experience + result.driverExperienceGained),
+          rating: Math.min(racer.potential, racer.rating + (podium ? 1 : 0)),
+          form: Math.max(-20, Math.min(20, racer.form + (result.playerDnf ? -6 : podium ? 5 : result.playerPosition <= 6 ? 1 : -2))),
+        };
+      }
+
+      let championshipProgress = state.championshipProgress;
+      if (result.championshipId) {
+        const progress = championshipProgress[result.championshipId];
+        if (progress) {
+          const driverEntry = progress.driverStandings[state.selectedDriverId] ?? { entrantId: state.selectedDriverId, points: 0, wins: 0, podiums: 0 };
+          const teamEntry = progress.teamStandings[state.playerTeamId] ?? { entrantId: state.playerTeamId, points: 0, wins: 0, podiums: 0 };
+          const won = !result.playerDnf && result.playerPosition === 1;
+          const podium = !result.playerDnf && result.playerPosition <= 3;
+          const standings = result.standings.find(s => s.isPlayer);
+          const points = standings?.points ?? 0;
+          championshipProgress = {
+            ...championshipProgress,
+            [result.championshipId]: {
+              ...progress,
+              racesCompleted: progress.racesCompleted + 1,
+              driverStandings: { ...progress.driverStandings, [state.selectedDriverId]: { ...driverEntry, points: driverEntry.points + points, wins: driverEntry.wins + (won ? 1 : 0), podiums: driverEntry.podiums + (podium ? 1 : 0) } },
+              teamStandings: { ...progress.teamStandings, [state.playerTeamId]: { ...teamEntry, points: teamEntry.points + points, wins: teamEntry.wins + (won ? 1 : 0), podiums: teamEntry.podiums + (podium ? 1 : 0) } },
+            },
+          };
+        }
+      }
+
+      const notification = {
+        id: `notif_${entry.id}`,
+        date: state.currentDate,
+        title: result.playerDnf ? 'Ritiro in gara' : `Arrivo in ${result.playerPosition}ª posizione`,
+        body: `${entry.title}: ${result.playerDnf ? 'ritiro per guasto meccanico' : `posizione ${result.playerPosition}`}, montepremi ${result.prizeMoney.toLocaleString('it-IT')} crediti.`,
+        read: false,
+      };
 
       let next: PlayerState = {
         ...state,
-        energy: clamp(state.energy - ENERGY_PER_RACE, 0, state.maxEnergy),
-        completedRaceCount: state.completedRaceCount + 1,
-        wonRaceCount: state.wonRaceCount + (result.playerPosition === 1 && !result.playerDnf ? 1 : 0),
-      };
-      next = grantCurrency(next, result.creditsEarned + result.bonusCredits, 0);
-      next = grantXp(next, result.xpEarned);
-
-      next = {
-        ...next,
-        ownedCars: next.ownedCars.map(c => c.instanceId === instanceId
-          ? {
-              ...c,
-              racesCompleted: c.racesCompleted + 1,
-              wins: c.wins + (result.playerPosition === 1 && !result.playerDnf ? 1 : 0),
-              xp: c.xp + result.xpEarned,
-            }
-          : c),
+        teams: { ...state.teams, [team.id]: team },
+        drivers,
+        finance: { ledger },
+        championshipProgress,
+        notifications: [...state.notifications, notification],
       };
 
-      for (const drop of result.drops) {
-        if (drop.kind === 'tokens') next = grantCurrency(next, 0, drop.amount ?? 0);
-        if (drop.kind === 'upgradePart') next = { ...next, upgradeParts: next.upgradeParts + (drop.amount ?? 1) };
-      }
-
-      if (source.kind === 'championship') {
-        const champ = CHAMPIONSHIPS.find(c => c.id === source.championshipId);
-        const prevProgress = next.championshipProgress[source.championshipId] ?? { racesWon: 0, completed: false, standing: 0 };
-        const won = result.playerPosition === 1 && !result.playerDnf;
-        const racesWon = prevProgress.racesWon + (won ? 1 : 0);
-        const isLastRace = source.raceIndex === (champ?.trackIds.length ?? 5) - 1;
-        const nowCompleted = isLastRace && !prevProgress.completed;
-        let updated: PlayerState = {
-          ...next,
-          championshipProgress: {
-            ...next.championshipProgress,
-            [source.championshipId]: { racesWon, completed: prevProgress.completed || (isLastRace && racesWon >= 3), standing: result.playerPosition },
-          },
-        };
-        if (nowCompleted && racesWon >= 3 && champ) {
-          updated = grantCurrency(updated, champ.creditReward, champ.tokenReward);
-        }
-        next = updated;
-      }
-
-      if (source.kind === 'boss') {
-        const boss = BOSSES.find(b => b.id === source.bossId);
-        const won = result.playerPosition === 1 && !result.playerDnf;
-        if (won && boss && !next.bossesDefeated.includes(boss.id)) {
-          next = grantCurrency({ ...next, bossesDefeated: [...next.bossesDefeated, boss.id] }, boss.rewardCredits, boss.rewardTokens);
-          if (boss.rewardCarId && next.ownedCars.length < next.garageSlots) {
-            next = { ...next, ownedCars: [...next.ownedCars, createCarInstance(boss.rewardCarId)] };
-          }
-        }
-      }
-
-      next = {
-        ...next,
-        raceHistory: [
-          ...next.raceHistory.slice(-49),
-          {
-            raceId: `${source.kind}_${Date.now()}`,
-            trackId: result.trackId,
-            position: result.playerPosition,
-            totalDrivers: result.standings.length,
-            creditsEarned: result.creditsEarned + result.bonusCredits,
-            xpEarned: result.xpEarned,
-            timestamp: Date.now(),
-          },
-        ],
-      };
-
-      return postProcess(next);
-    }
-
-    case 'BUY_MARKET_CAR': {
-      const listing = state.marketListings.find(l => l.id === action.listingId);
-      if (!listing || !canAfford(state.credits, listing.price)) return state;
-      if (state.ownedCars.length >= state.garageSlots) return state;
-      const instance = { ...createCarInstance(listing.defId), upgrades: { ...listing.upgrades } };
-      return postProcess({
-        ...state,
-        credits: spend(state.credits, listing.price, 'credits'),
-        ownedCars: [...state.ownedCars, instance],
-        marketListings: state.marketListings.filter(l => l.id !== action.listingId),
-      });
-    }
-
-    case 'REFRESH_MARKET': {
-      const rng = mulberry32(hashSeed(`manual_${Date.now()}`));
-      return { ...state, marketListings: generateMarket(rng, Date.now()), marketGeneratedAt: Date.now() };
-    }
-
-    case 'OPEN_PACK': {
-      const pack = PACK_BY_ID[action.packId];
-      if (!pack) return state;
-      const balance = pack.currency === 'credits' ? state.credits : state.tokens;
-      if (!canAfford(balance, pack.price)) return state;
-      if (state.ownedCars.length + pack.carCount > state.garageSlots) return state;
-
-      const rng = mulberry32(hashSeed(`pack_${action.packId}_${Date.now()}_${Math.random()}`));
-      const pity = state.packPity[action.packId] ?? 0;
-      const { cars, newPityCount } = openPack(pack, pity, rng);
-      const newInstances = cars.map(c => createCarInstance(c.id));
-
-      const credits = pack.currency === 'credits' ? spend(state.credits, pack.price, 'credits') : state.credits;
-      const tokens = pack.currency === 'tokens' ? spend(state.tokens, pack.price, 'tokens') : state.tokens;
-
-      return postProcess({
-        ...state,
-        credits,
-        tokens,
-        ownedCars: [...state.ownedCars, ...newInstances],
-        packPity: { ...state.packPity, [action.packId]: newPityCount },
-      });
-    }
-
-    case 'CLAIM_DAILY_REWARD': {
-      const now = Date.now();
-      const oneDay = 24 * 60 * 60 * 1000;
-      if (state.lastDailyClaim && now - state.lastDailyClaim < oneDay) return state;
-      const missedTooLong = state.lastDailyClaim !== null && now - state.lastDailyClaim > oneDay * 2;
-      const nextStreak = missedTooLong ? 1 : (state.dailyRewardStreak % 7) + 1;
-      const reward = DAILY_REWARDS.find(d => d.day === nextStreak) ?? DAILY_REWARDS[0];
-
-      let next: PlayerState = { ...state, dailyRewardStreak: nextStreak, lastDailyClaim: now };
-      switch (reward.kind) {
-        case 'credits': next = grantCurrency(next, reward.amount, 0); break;
-        case 'tokens': next = grantCurrency(next, 0, reward.amount); break;
-        case 'energy': next = { ...next, energy: clamp(next.energy + reward.amount, 0, next.maxEnergy) }; break;
-        case 'upgradeParts': next = { ...next, upgradeParts: next.upgradeParts + reward.amount }; break;
-        case 'pack':
-        case 'premiumPack': {
-          const packId = reward.kind === 'premiumPack' ? 'pack_epic' : 'pack_basic';
-          const pack = PACK_BY_ID[packId];
-          if (pack) {
-            const rng = mulberry32(hashSeed(`daily_${now}`));
-            const pity = next.packPity[packId] ?? 0;
-            const { cars, newPityCount } = openPack(pack, pity, rng);
-            next = {
-              ...next,
-              ownedCars: [...next.ownedCars, ...cars.map(c => createCarInstance(c.id))],
-              packPity: { ...next.packPity, [packId]: newPityCount },
-            };
-          }
-          break;
-        }
-      }
-      return postProcess(next);
+      next = completeCurrentAndAdvance(next);
+      next = returnExpiredRentals(next, entry.id);
+      return next;
     }
 
     case 'UPDATE_SETTINGS':
       return { ...state, settings: { ...state.settings, ...action.settings } };
-
-    case 'TICK_ENERGY': {
-      const { energy, lastTick } = tickEnergy(state.energy, state.maxEnergy, state.lastEnergyTick, Date.now());
-      if (energy === state.energy && lastTick === state.lastEnergyTick) return state;
-      return { ...state, energy, lastEnergyTick: lastTick };
-    }
-
-    case 'WATCH_AD_REWARD': {
-      if (action.placement === 'restore_energy') {
-        return { ...state, energy: state.maxEnergy };
-      }
-      if (action.placement === 'free_pack') {
-        const pack = PACK_BY_ID['pack_basic'];
-        const rng = mulberry32(hashSeed(`ad_pack_${Date.now()}`));
-        const pity = state.packPity[pack.id] ?? 0;
-        const { cars, newPityCount } = openPack(pack, pity, rng);
-        return postProcess({
-          ...state,
-          ownedCars: [...state.ownedCars, ...cars.map(c => createCarInstance(c.id))],
-          packPity: { ...state.packPity, [pack.id]: newPityCount },
-        });
-      }
-      // 'double_reward' is applied by the screen that just showed a result, via a follow-up grant.
-      return state;
-    }
-
-    case 'GRANT_BONUS': {
-      // Used by the "watch an ad to double this reward" flow on the result
-      // screen: the screen already knows the amounts (it just displayed
-      // them), this just routes the grant through the same currency/XP path
-      // every other reward uses instead of mutating state directly.
-      let next = grantCurrency(state, action.credits, action.tokens);
-      if (action.xp > 0) next = grantXp(next, action.xp);
-      return postProcess(next);
-    }
-
-    case 'PURCHASE_PRODUCT': {
-      // MockMonetizationService never charges real money; this just grants the
-      // product's virtual contents so the full UX loop is testable end-to-end.
-      switch (action.productId) {
-        case 'remove_ads':
-          return { ...state, monetization: { ...state.monetization, adsRemoved: true } };
-        case 'token_pack_small': return grantCurrency(state, 0, 100);
-        case 'token_pack_medium': return grantCurrency(state, 0, 550);
-        case 'token_pack_large': return grantCurrency(state, 0, 1200);
-        case 'starter_pack': {
-          const hasRoom = state.ownedCars.length < state.garageSlots;
-          const withCar = hasRoom ? { ...state, ownedCars: [...state.ownedCars, createCarInstance(pickRareStarterCar())] } : state;
-          return postProcess(grantCurrency(withCar, 2000, 200));
-        }
-        case 'premium_pack': {
-          const hasRoom = state.ownedCars.length < state.garageSlots;
-          const withCar = hasRoom ? { ...state, ownedCars: [...state.ownedCars, createCarInstance(pickRareStarterCar())] } : state;
-          return postProcess(grantCurrency(withCar, 4000, 500));
-        }
-        default:
-          return state;
-      }
-    }
 
     default:
       return state;
   }
 }
 
-function pickRareStarterCar(): string {
-  const candidates = Object.values(CAR_BY_ID).filter(c => c.rarity === 'Rare');
-  return candidates[Math.floor(Math.random() * candidates.length)]?.id ?? 'car_004';
+function resolveAuctionClose(state: PlayerState, auction: ReturnType<typeof closeAuction>): PlayerState {
+  if (auction.status !== 'won_by_player') {
+    return completeCurrentAndAdvance({ ...state, activeAuction: null });
+  }
+  const team = state.teams[state.playerTeamId];
+  const instance = createCarInstance(auction.carDefId, state.currentDate, 'owned');
+  const def = CAR_BY_ID[auction.carDefId];
+  const { team: billedTeam, ledger } = applyTransaction(team, state.finance.ledger, state.currentDate, `Asta vinta — ${def?.displayName ?? auction.carDefId}`, -auction.currentBid.amount);
+  const next: PlayerState = {
+    ...state,
+    activeAuction: null,
+    cars: { ...state.cars, [instance.instanceId]: instance },
+    teams: { ...state.teams, [team.id]: { ...billedTeam, carInstanceIds: [...billedTeam.carInstanceIds, instance.instanceId] } },
+    finance: { ledger },
+  };
+  return completeCurrentAndAdvance(next);
 }

@@ -24,22 +24,14 @@
   background: var(--color-bg-elevated);
   border-bottom: 1px solid var(--color-border);
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.top-bar-level {
-  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
 }
-.level-chip {
-  font-weight: 800;
+.top-bar-date {
+  font-weight: 700;
   font-size: 13px;
-  color: var(--color-orange);
-  flex: none;
-}
-.top-bar-xp {
-  flex: 1;
+  color: var(--color-text-muted);
 }
 .top-bar-currencies {
   display: flex;
@@ -47,9 +39,8 @@
   font-size: 13px;
   font-weight: 600;
 }
-.currency.credits { color: var(--color-warning); }
-.currency.tokens { color: var(--color-blue); }
-.currency.energy { color: var(--color-success); }
+.currency.budget { color: var(--color-warning); }
+.currency.reputation { color: var(--color-blue); }
 
 /* ------------------------------------------------------------- Bottom nav */
 .bottom-nav {
@@ -168,7 +159,7 @@
   transition: width 0.3s ease;
 }
 
-/* -------------------------------------------------------------- Logo / new game */
+/* -------------------------------------------------------------- Logo / new career */
 .logo-screen {
   display: flex;
   flex-direction: column;
@@ -194,19 +185,10 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  text-align: left;
 }
+.new-game-form label { font-size: 12px; color: var(--color-text-muted); }
 .text-input { width: 100%; }
-
-/* ------------------------------------------------------------- Onboarding */
-.starter-car-grid, .car-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.tutorial-card { text-align: center; }
-.tutorial-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
-.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-border); }
-.dot.active { background: var(--color-accent-strong); }
 
 /* ------------------------------------------------------------------- Home */
 .home-car-card {
@@ -216,33 +198,26 @@
   flex-wrap: wrap;
 }
 .home-car-info { flex: 1; }
-.home-quick-actions { margin: 10px 0; }
-.daily-reward-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
+.next-event-card h2 { color: var(--color-text); text-transform: none; letter-spacing: 0; font-size: 17px; margin-top: 6px; }
 .race-history-list { list-style: none; padding: 0; margin: 4px 0 0; font-size: 13px; color: var(--color-text-muted); }
 
+.timeline { display: flex; flex-direction: column; gap: 4px; }
+.timeline-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--color-border); }
+.timeline-item.current strong { color: var(--color-accent-strong); }
+.timeline-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-border); margin-top: 5px; flex: none; }
+.timeline-item.current .timeline-dot { background: var(--color-accent-strong); }
+
 /* ------------------------------------------------------------------ Cars */
+.car-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .car-card { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; }
-.car-card-art { margin-bottom: 2px; }
 .car-card-name { font-weight: 700; font-size: 13px; }
 .car-card-brand { font-size: 11px; color: var(--color-text-muted); }
 .car-card-badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-top: 2px; }
-.car-card-desc { font-size: 11px; color: var(--color-text-muted); margin-top: 4px; }
-.favorite-star { color: var(--color-warning); }
 
 .car-detail-header { display: flex; align-items: center; gap: 12px; }
-.car-detail-actions { display: flex; gap: 8px; margin: 10px 0; }
-.upgrade-group { margin-bottom: 6px; }
-.upgrade-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
-.upgrade-row-label { display: flex; flex-direction: column; font-size: 12px; }
-.upgrade-level { color: var(--color-text-muted); }
+.car-detail-actions { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
 
-.tire-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
-.tire-chip, .option-chip {
+.option-chip {
   background: var(--color-bg-elevated-2);
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -251,19 +226,16 @@
   cursor: pointer;
   color: var(--color-text);
 }
-.tire-chip.active, .option-chip.active {
+.option-chip.active {
   border-color: var(--color-accent-strong);
   color: var(--color-accent-strong);
   background: rgba(255, 77, 77, 0.1);
 }
 
 /* ------------------------------------------------------------------- Race */
-.track-list, .race-list { display: flex; flex-direction: column; gap: 8px; }
-.track-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.track-card-name { font-weight: 700; }
 .strategy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-.strategy-grid .option-chip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
-.speed-controls { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.strategy-grid .option-chip, .decision-option { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
+.decision-option strong { color: var(--color-accent-strong); }
 .live-positions { counter-reset: pos; }
 .live-positions li {
   padding: 6px 0;
@@ -274,38 +246,19 @@
 .player-row { color: var(--color-accent-strong); font-weight: 700; }
 .event-ticker p { font-size: 12px; margin: 2px 0; }
 .result-standings li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--color-border); font-size: 13px; }
-.success-text { color: var(--color-success); }
 
-/* ----------------------------------------------------------------- World */
-.region-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.region-card { text-align: center; }
+/* ---------------------------------------------------------------- Drivers */
+.driver-list { display: flex; flex-direction: column; gap: 8px; }
+.driver-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.driver-card-info { flex: 1; min-width: 160px; }
+.driver-card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
-/* ------------------------------------------------------------------ More */
-.more-list { display: flex; flex-direction: column; gap: 8px; }
-.more-item { display: flex; align-items: center; gap: 12px; }
-.more-icon { font-size: 22px; color: var(--color-blue); }
-
-/* ----------------------------------------------------------------- Packs */
-.pack-grid { display: flex; flex-direction: column; gap: 10px; }
-.pack-card { }
-.pack-odds { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; color: var(--color-text-muted); margin: 6px 0; }
-.reveal-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-.reveal-card { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; font-size: 11px; }
-
-/* ------------------------------------------------------------ Collections */
-.collection-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
-.collection-cars { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-.collection-chip { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: var(--color-bg-elevated-2); color: var(--color-text-muted); }
-.collection-chip.owned { color: var(--color-success); border: 1px solid var(--color-success); }
-
-/* --------------------------------------------------------- Achievements */
-.achievement-card.unlocked { border-color: var(--color-success); }
+/* --------------------------------------------------------------- Auction */
+.auction-history { margin-bottom: 10px; }
 
 /* ------------------------------------------------------------- Settings */
 .settings-card { display: flex; flex-direction: column; gap: 10px; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; }
-.store-grid { display: flex; flex-direction: column; gap: 8px; }
-.store-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 
 /* --------------------------------------------------------------- Modal */
 .modal-overlay {

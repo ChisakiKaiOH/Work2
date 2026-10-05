@@ -1,0 +1,9 @@
+[
+  {
+    "id": "auction_veltara_917k",
+    "carDefId": "car_003",
+    "startingPrice": 650000,
+    "bidIncrement": 25000,
+    "maxRounds": 6
+  }
+]

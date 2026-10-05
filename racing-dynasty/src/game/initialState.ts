@@ -1,71 +1,65 @@
-import type { PlayerState, CarInstance } from '../types';
-import { emptyUpgrades } from '../services/performanceRating';
-import { maxEnergyForLevel } from '../services/progression';
+import type { PlayerState, TeamDef, DriverDef, CalendarEntry, ChampionshipProgress } from '../types';
+import { AI_TEAMS, DRIVERS, CALENDAR_1970, CHAMPIONSHIPS } from '../data';
+import { generateUsedCarMarket, generateDriverOffers } from '../services/market';
+import { hashSeed, mulberry32 } from '../sim/rng';
 
-export function createCarInstance(defId: string): CarInstance {
-  return {
-    instanceId: `inst_${defId}_${Date.now()}_${Math.floor(Math.random() * 1e6)}`,
-    defId,
-    acquiredAt: Date.now(),
-    upgrades: emptyUpgrades(),
-    equippedTire: 'Sport',
-    xp: 0,
-    racesCompleted: 0,
-    wins: 0,
-    favorite: false,
+export const SAVE_VERSION = 1;
+export const STARTING_BUDGET = 520_000;
+
+export function createNewCareer(teamName: string, ownerName: string): PlayerState {
+  const startDate = { year: 1970, month: 1, day: 1 };
+
+  const playerTeam: TeamDef = {
+    id: 'team_player',
+    displayName: teamName || 'La mia scuderia',
+    ownerName: ownerName || 'Team Owner',
+    founded: 1970,
+    isPlayer: true,
+    reputation: 30,
+    budget: STARTING_BUDGET,
+    carInstanceIds: [],
+    driverIds: [],
+    active: true,
   };
-}
 
-export function createNewPlayer(name: string): PlayerState {
-  const now = Date.now();
+  const teams: Record<string, TeamDef> = { [playerTeam.id]: playerTeam };
+  for (const t of AI_TEAMS) teams[t.id] = { ...t };
+
+  const drivers: Record<string, DriverDef> = Object.fromEntries(DRIVERS.map(d => [d.id, { ...d }]));
+
+  const calendar: CalendarEntry[] = CALENDAR_1970.map(e => ({ ...e }));
+  const firstEntryId = calendar[0]?.id ?? '';
+
+  const rng = mulberry32(hashSeed(`career_${Date.now()}`));
+  const usedCarMarket = generateUsedCarMarket(rng, firstEntryId);
+  const driverOffers = generateDriverOffers(rng, Object.values(drivers), firstEntryId);
+
+  const championshipProgress: Record<string, ChampionshipProgress> = {};
+  for (const champ of CHAMPIONSHIPS) {
+    championshipProgress[champ.id] = { championshipId: champ.id, racesCompleted: 0, driverStandings: {}, teamStandings: {} };
+  }
+
   return {
-    createdAt: now,
-    name,
-    level: 1,
-    xp: 0,
-    credits: 5000,
-    tokens: 50,
-    upgradeParts: 2,
-    energy: maxEnergyForLevel(1),
-    maxEnergy: maxEnergyForLevel(1),
-    lastEnergyTick: now,
-
-    ownedCars: [],
+    saveVersion: SAVE_VERSION,
+    currentDate: startDate,
+    playerTeamId: playerTeam.id,
+    teams,
+    cars: {},
+    drivers,
     selectedCarInstanceId: null,
-    garageSlots: 60,
-
-    ownedDriverIds: ['driver_01', 'driver_02', 'driver_03'],
-    selectedDriverId: 'driver_01',
-
-    championshipProgress: {},
-    bossesDefeated: [],
-    completedRaceCount: 0,
-    wonRaceCount: 0,
-    totalCreditsEarned: 5000,
-
+    selectedDriverId: null,
+    calendar,
+    currentEntryIndex: 0,
+    championships: Object.fromEntries(CHAMPIONSHIPS.map(c => [c.id, c])),
+    championshipProgress,
+    usedCarMarket,
+    driverOffers,
+    marketGeneratedAtEntryId: firstEntryId,
+    activeAuction: null,
+    finance: { ledger: [{ date: startDate, label: 'Fondi iniziali', amount: STARTING_BUDGET }] },
+    seasonHistory: [],
     achievementsUnlocked: [],
-    dailyRewardStreak: 0,
-    lastDailyClaim: null,
-
-    marketListings: [],
-    marketGeneratedAt: null,
-
-    packPity: {},
-    collectionProgress: {},
-
-    settings: {
-      musicOn: true,
-      soundOn: true,
-      notificationsOn: true,
-      graphicsQuality: 'High',
-      batterySaver: false,
-      language: 'it',
-    },
-    monetization: { adsRemoved: false },
-
-    tutorialCompleted: false,
-    firstCarChosen: false,
-
-    raceHistory: [],
+    notifications: [],
+    settings: { musicOn: true, soundOn: true, notificationsOn: true, language: 'it' },
   };
 }

@@ -1,113 +1,61 @@
 import { useState } from 'react';
-import type { CarInstance, TireType, UpgradeCategory } from '../types';
-import { UPGRADE_GROUPS, MAX_UPGRADE_LEVEL } from '../types';
+import type { CarInstance } from '../types';
 import { useGameState, useGameDispatch } from '../game/hooks';
 import { CAR_BY_ID } from '../data';
-import { carInstanceStats, carInstancePR, upgradeCost, isMaxLevel } from '../services/performanceRating';
-import { TIRE_LABEL_IT } from '../services/conditions';
+import { carRating } from '../services/carRating';
 import CarArt from '../components/CarArt';
-import CarCard from '../components/CarCard';
 import RarityBadge from '../components/RarityBadge';
-import PRBadge from '../components/PRBadge';
 import StatBar from '../components/StatBar';
 import Card from '../components/Card';
 import Button from '../components/Button';
 
-const TIRES: TireType[] = ['Street', 'Sport', 'Racing', 'Rain', 'WetRacing'];
-
-function CarDetail({ instance }: { instance: CarInstance }) {
-  const dispatch = useGameDispatch();
+function CarDetail({ instance, onBack }: { instance: CarInstance; onBack: () => void }) {
   const player = useGameState();
+  const dispatch = useGameDispatch();
   const def = CAR_BY_ID[instance.defId];
-  const stats = carInstanceStats(def, instance);
-  const pr = carInstancePR(def, instance);
-  if (!player) return null;
+  if (!player || !def) return null;
+  const isSelected = player.selectedCarInstanceId === instance.instanceId;
 
   return (
-    <Card className="car-detail">
-      <div className="car-detail-header">
-        <CarArt silhouette={def.silhouette} colorPrimary={def.colorPrimary} colorSecondary={def.colorSecondary} size={120} />
-        <div>
-          <div className="car-card-name">{def.name}</div>
-          <div className="car-card-brand">{def.brand}</div>
-          <div className="car-card-badges">
-            <RarityBadge rarity={def.rarity} />
-            <PRBadge pr={pr} />
+    <div className="screen garage-screen">
+      <Button variant="ghost" onClick={onBack}>← Torna al garage</Button>
+      <Card className="car-detail">
+        <div className="car-detail-header">
+          <CarArt silhouette={def.silhouette} colorPrimary={def.colorPrimary} colorSecondary={def.colorSecondary} size={120} />
+          <div>
+            <div className="car-card-name">{def.displayName}</div>
+            <div className="car-card-brand">{def.year} · {def.category}</div>
+            <div className="car-card-badges">
+              <RarityBadge rarity={def.rarity} />
+              <span className="badge pr-badge">Rating {carRating(def.stats)}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="car-detail-actions">
-        <Button
-          variant={player.selectedCarInstanceId === instance.instanceId ? 'secondary' : 'primary'}
-          disabled={player.selectedCarInstanceId === instance.instanceId}
-          onClick={() => dispatch({ type: 'SELECT_CAR', instanceId: instance.instanceId })}
-        >
-          {player.selectedCarInstanceId === instance.instanceId ? 'In uso' : 'Usa in gara'}
-        </Button>
-        <Button variant="ghost" onClick={() => dispatch({ type: 'TOGGLE_FAVORITE', instanceId: instance.instanceId })}>
-          {instance.favorite ? '★ Preferita' : '☆ Preferisci'}
-        </Button>
-      </div>
+        <p className="muted">{def.description}</p>
+        <p className="muted">{instance.ownership === 'owned' ? `Condizione: ${instance.condition}%` : 'Auto a noleggio — verrà restituita al termine del contratto.'}</p>
 
-      <h2>Statistiche</h2>
-      <StatBar label="Potenza" value={stats.power} colorVar="--color-danger" />
-      <StatBar label="Accelerazione" value={stats.acceleration} colorVar="--color-warning" />
-      <StatBar label="Velocità massima" value={stats.topSpeed} colorVar="--color-blue" />
-      <StatBar label="Frenata" value={stats.braking} colorVar="--color-accent" />
-      <StatBar label="Grip" value={stats.grip} colorVar="--color-success" />
-      <StatBar label="Stabilità" value={stats.stability} colorVar="--color-blue" />
-      <StatBar label="Affidabilità" value={stats.reliability} colorVar="--color-success" />
-      <StatBar label="Trazione" value={stats.traction} colorVar="--color-warning" />
-      <div className="stat-bar">
-        <div className="stat-bar-row">
-          <span className="stat-bar-label">Peso</span>
-          <span className="stat-bar-value">{Math.round(stats.weight)} kg</span>
+        <div className="car-detail-actions">
+          <Button variant={isSelected ? 'secondary' : 'primary'} disabled={isSelected} onClick={() => dispatch({ type: 'SELECT_RACE_CAR', instanceId: instance.instanceId })}>
+            {isSelected ? 'In uso per la prossima gara' : 'Usa per la prossima gara'}
+          </Button>
+          {instance.ownership === 'owned' && (
+            <Button variant="danger" onClick={() => { dispatch({ type: 'SELL_CAR', instanceId: instance.instanceId }); onBack(); }}>
+              Vendi
+            </Button>
+          )}
         </div>
-      </div>
 
-      <h2>Gomme</h2>
-      <div className="tire-row">
-        {TIRES.map(t => (
-          <button
-            key={t}
-            type="button"
-            className={['tire-chip', instance.equippedTire === t ? 'active' : ''].filter(Boolean).join(' ')}
-            onClick={() => dispatch({ type: 'EQUIP_TIRE', instanceId: instance.instanceId, tire: t })}
-          >
-            {TIRE_LABEL_IT[t]}
-          </button>
-        ))}
-      </div>
-
-      <h2>Potenziamenti</h2>
-      {Object.entries(UPGRADE_GROUPS).map(([group, categories]) => (
-        <div key={group} className="upgrade-group">
-          <h3>{group}</h3>
-          {categories.map((cat: UpgradeCategory) => {
-            const level = instance.upgrades[cat];
-            const maxed = isMaxLevel(level);
-            const cost = upgradeCost(cat, level);
-            const discounted = player.upgradeParts > 0 ? Math.round(cost * 0.75) : cost;
-            return (
-              <div key={cat} className="upgrade-row">
-                <div className="upgrade-row-label">
-                  <span>{cat}</span>
-                  <span className="upgrade-level">Lv {level}/{MAX_UPGRADE_LEVEL}</span>
-                </div>
-                <Button
-                  variant="secondary"
-                  disabled={maxed || player.credits < discounted}
-                  onClick={() => dispatch({ type: 'UPGRADE_CAR', instanceId: instance.instanceId, category: cat })}
-                >
-                  {maxed ? 'Max' : `Potenzia · ${discounted.toLocaleString('it-IT')} ◈${player.upgradeParts > 0 ? ' (parte usata)' : ''}`}
-                </Button>
-              </div>
-            );
-          })}
-        </div>
-      ))}
-    </Card>
+        <h2>Statistiche</h2>
+        <StatBar label="Potenza" value={def.stats.power} max={230} colorVar="--color-danger" />
+        <StatBar label="Velocità massima" value={def.stats.topSpeed} max={230} colorVar="--color-blue" />
+        <StatBar label="Maneggevolezza" value={def.stats.handling} max={200} colorVar="--color-success" />
+        <StatBar label="Frenata" value={def.stats.braking} max={200} colorVar="--color-accent" />
+        <StatBar label="Affidabilità" value={def.stats.reliability} max={200} colorVar="--color-success" />
+        <StatBar label="Aerodinamica" value={def.stats.aerodynamics} max={200} colorVar="--color-warning" />
+        <p className="muted">Peso: {def.stats.weight} kg</p>
+      </Card>
+    </div>
   );
 }
 
@@ -116,32 +64,32 @@ export default function GarageScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   if (!player) return null;
 
-  const detailInstance = player.ownedCars.find(c => c.instanceId === selectedId);
+  const team = player.teams[player.playerTeamId];
+  const instances = team.carInstanceIds.map(id => player.cars[id]).filter(Boolean);
 
-  if (detailInstance) {
-    return (
-      <div className="screen garage-screen">
-        <Button variant="ghost" onClick={() => setSelectedId(null)}>← Torna al garage</Button>
-        <CarDetail instance={detailInstance} />
-      </div>
-    );
-  }
+  const detail = instances.find(i => i.instanceId === selectedId);
+  if (detail) return <CarDetail instance={detail} onBack={() => setSelectedId(null)} />;
 
   return (
     <div className="screen garage-screen">
-      <h1>Garage ({player.ownedCars.length}/{player.garageSlots})</h1>
+      <h1>Garage ({instances.length})</h1>
+      {instances.length === 0 && <p className="muted">Non hai ancora nessuna auto. Vai al Mercato per comprarne o noleggiarne una.</p>}
       <div className="car-grid">
-        {player.ownedCars.map(instance => {
+        {instances.map(instance => {
           const def = CAR_BY_ID[instance.defId];
+          if (!def) return null;
           return (
-            <CarCard
-              key={instance.instanceId}
-              car={def}
-              pr={carInstancePR(def, instance)}
-              selected={player.selectedCarInstanceId === instance.instanceId}
-              onClick={() => setSelectedId(instance.instanceId)}
-              footer={instance.favorite ? <span className="favorite-star">★</span> : undefined}
-            />
+            <Card key={instance.instanceId} className={['car-card', 'clickable', player.selectedCarInstanceId === instance.instanceId ? 'selected' : ''].join(' ')} onClick={() => setSelectedId(instance.instanceId)}>
+              <CarArt silhouette={def.silhouette} colorPrimary={def.colorPrimary} colorSecondary={def.colorSecondary} size={110} />
+              <div className="car-card-info">
+                <div className="car-card-name">{def.displayName}</div>
+                <div className="car-card-brand">{instance.ownership === 'owned' ? 'Di proprietà' : 'Noleggiata'}</div>
+                <div className="car-card-badges">
+                  <RarityBadge rarity={def.rarity} />
+                  <span className="badge pr-badge">Rating {carRating(def.stats)}</span>
+                </div>
+              </div>
+            </Card>
           );
         })}
       </div>

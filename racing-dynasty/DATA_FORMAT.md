@@ -1,105 +1,131 @@
 # Data Format — adding/editing content
 
 All game content lives in `src/data/*.json`, typed against interfaces in
-`src/types/index.ts` and re-exported (with ID-lookup maps) from
-`src/data/index.ts`. **None of it requires a code change in `services/`,
-`simulation/` or `game/` to take effect** — that's the whole point of keeping
-logic and data separate.
+`src/types/index.ts` and re-exported (with id-lookup maps) from
+`src/data/index.ts`. None of it requires a logic change to take effect.
 
 > After editing any file in `src/data/`, run `npx tsc -p tsconfig.app.json
-> --noEmit` — TypeScript will catch a missing/misspelled field immediately
-> because every JSON file is cast against its `*Def` interface.
+> --noEmit` — TypeScript checks every JSON file against its `*Def`
+> interface, so a missing/misspelled field is caught immediately.
+
+## Adding a manufacturer (`manufacturers.json` → `ManufacturerDef[]`)
+
+```json
+{ "id": "mfr_newmark", "displayName": "Newmark Racing", "country": "Spain", "founded": 1962 }
+```
+
+Pick an original name — see README's "A note on names" for why this project
+uses fully invented names rather than disguised real trademarks.
 
 ## Adding a car (`cars.json` → `CarDef[]`)
 
 ```json
 {
-  "id": "car_051",
-  "name": "Veltara Spectre",
-  "brand": "Veltara",
-  "category": "Super",
-  "rarity": "Epic",
-  "stats": { "power": 190, "acceleration": 170, "topSpeed": 195, "braking": 150, "grip": 160, "stability": 140, "reliability": 120, "weight": 1280, "traction": 150 },
-  "engineType": "Turbo Hybrid",
-  "fuel": "Hybrid",
-  "baseValue": 185000,
-  "stars": 4,
-  "colorPrimary": "#2fd2ff",
-  "colorSecondary": "#101418",
+  "id": "car_011",
+  "displayName": "Newmark NR12",
+  "manufacturerId": "mfr_newmark",
+  "year": 1970,
+  "category": "GT",
+  "rarity": "Rare",
+  "stats": { "power": 150, "weight": 1250, "topSpeed": 165, "handling": 130, "braking": 128, "reliability": 140, "aerodynamics": 105 },
+  "baseValue": 180000,
+  "rentPricePerEvent": 16000,
+  "historicalImportance": 35,
+  "colorPrimary": "#1c3a5e",
+  "colorSecondary": "#f2f2f2",
   "silhouette": "coupe",
   "description": "Short, original flavor text."
 }
 ```
 
-- `brand` must be one of (or a new addition to) `brands.json` — never a real
-  manufacturer.
-- `silhouette` picks which procedural SVG body shape `CarArt.tsx` renders:
+- `category` is one of `Formula | SportsCar | GT | Touring | Prototype`.
+- `rarity` is one of `Common | Uncommon | Rare | Epic | Legendary | Iconic`.
+  **`Iconic` is reserved** for cars meant to arrive via a dedicated auction
+  event (see "Adding an auction" below) — `services/market.ts` excludes
+  `Iconic` cars from the normal random used-car market on purpose.
+- `silhouette` picks the procedural SVG body shape `CarArt.tsx` renders:
   `coupe | roadster | hypercar | prototype | suv-coupe | classic`.
-- PR is *derived*, never stored — it's computed from `stats` by
-  `performanceRating()` at render/simulation time. Pick `stats` so the
-  resulting PR lands in the category you intend (see GAME_DESIGN.md's
-  formula) — there's no validation step enforcing this, so sanity-check with
-  a quick `performanceRating(stats)` call if you're unsure.
+- There's no "PR" stored on the car — `carRating(stats)` derives it at
+  render/simulation time (see GAME_DESIGN.md for the formula). Sanity-check
+  a new car's intended tier by calling `carRating` on its stats if unsure.
+
+## Adding a driver (`drivers.json` → `DriverDef[]`)
+
+All ship with `"status": "free_agent"`, `"form": 0`, and a reasonable
+`"morale"` (60-80) — the player (or a future AI team) hires them from there.
+`skills` are 0-100; see GAME_DESIGN.md for which skill feeds which race
+decision so a new driver's identity (an ace in the wet, a consistent
+veteran, a reckless rookie) actually shows up during races, not just in a
+stat sheet nobody reads.
 
 ## Adding a track (`tracks.json` → `TrackDef[]`)
 
-Needs a `region` (one of the 6 `Region` values), `laps`, `lengthKm`,
-`difficulty` (1–5), `surface`, `type`, and `preferredConditions` (a `Weather[]`
-the simulator and the UI's weather-pick logic lean toward for that track).
+`laps` × `lengthKm` sets race length (and therefore roughly how many laps
+the engine has to place its 3 decision points across — very short tracks
+get a minimum lap floor, see `createEngineState` in `raceEngine.ts`).
+`overtakeDifficulty` (0-100) and `rainProbability` (0-1) both feed directly
+into the decision-chance formula and the weather roll.
 
 ## Adding a championship (`championships.json` → `ChampionshipDef[]`)
 
-`trackIds` should list exactly 5 track ids from `tracks.json`. `requiredPR`
-is advisory (shown in the UI, not enforced by the reducer) — it's meant to
-guide the player toward the right tier of car, not hard-gate them.
+`trackIds` is the season's ordered race calendar — but note the actual
+*when* each race happens is driven by `calendar_1970.json`'s own entries,
+not by this array's order alone; keep them consistent. `pointsForPosition`
+is the points table (e.g. `[9, 6, 4, 3, 2, 1]`) — position `i+1` gets
+`pointsForPosition[i]`, anyone finishing further back or DNFing gets 0.
 
-## Adding a boss (`bosses.json` → `BossDef[]`)
+## Building a season calendar (`calendar_1970.json` → `CalendarEntry[]`)
 
-`carDefId` must reference a real car in `cars.json` — the boss races in that
-exact car (see `RaceScreen`'s boss-launch logic, which pulls the car and
-builds a dedicated `RaceParticipant` for it rather than a generic bot).
-`rewardCarId` is optional; if set, defeating the boss for the first time adds
-that car to the garage (subject to garage-slot capacity).
+A new season (e.g. `calendar_1971.json`) is a new array of entries in
+chronological order. Each entry:
 
-## Adding a pack (`packs.json` → `PackDef[]`)
+```json
+{
+  "id": "cal_01",
+  "type": "PRE_SEASON",
+  "date": { "year": 1971, "month": 2, "day": 1 },
+  "title": "...",
+  "description": "...",
+  "fictional": true,
+  "completed": false
+}
+```
 
-`odds` must be the *exact* numbers you want shown to the player — there's no
-hidden multiplier applied to them outside of the pity mechanic, which is
-itself documented and surfaced in the UI. Keep `RARITY_ORDER`'s six keys all
-present (`Common..Mythic`), even if some are `0`. `categoryPool` is optional;
-if set, the pack only draws from cars in those categories.
+`type` is one of `PRE_SEASON | TEST | RACE | MARKET | AUCTION |
+CHAMPIONSHIP_END | SEASON_END`. A `RACE` entry needs `championshipId` +
+`trackId`; `ADVANCE_TIME` refuses to skip past a `RACE` entry — the player
+must actually race it (go to Home → "Vai alla gara"). An `AUCTION` entry
+needs `auctionId` referencing `auctions.json`. Wiring a new season into the
+game currently means pointing `game/initialState.ts`'s `createNewCareer` at
+the new calendar file — a small, explicit change rather than hidden
+auto-detection, so it's obvious which season a new career starts on.
 
-## Adding an event (`events.json` → `EventDef[]`)
+## Adding an auction (`auctions.json` → `AuctionDef[]`)
 
-`trackId` + `weather` are fixed for the event (unlike free races, where
-weather is picked at race-setup time). `requiredCategory`/`requiredBrand` are
-currently informational — enforcing them as a hard gate would be a small
-addition to `RaceScreen`'s launch logic if needed later.
+```json
+{ "id": "auction_newmark_nr12_proto", "carDefId": "car_011", "startingPrice": 400000, "bidIncrement": 20000, "maxRounds": 6 }
+```
 
-## Adding an achievement (`achievements.json` → `AchievementDef[]`)
+Reference it from a calendar entry's `auctionId`. The car it points to
+should normally be `Iconic` rarity (see above) so it isn't *also* reachable
+through the ordinary used-car market.
 
-`condition` is a discriminated union — see `AchievementCondition` in
-`src/types/index.ts` for the full list of condition `type`s
-(`racesCompleted`, `racesWon`, `creditsEarned`, `carsOwned`,
-`championshipsWon`, `bossesDefeated`, `legendaryCarsOwned`, `playerLevel`,
-`collectionsCompleted`, `maxUpgradesOnCar`). `conditionValue()` in
-`src/services/achievements.ts` is where a brand-new condition `type` would
-need a new `case`.
+## Adding an AI team (`teams.json` → `TeamDef[]`)
 
-## Adding a collection (`collections.json` → `CollectionCategoryDef[]`)
+```json
+{
+  "id": "team_newname", "displayName": "...", "ownerName": "...", "founded": 1968,
+  "isPlayer": false, "reputation": 60, "budget": 600000,
+  "carInstanceIds": [], "driverIds": [],
+  "aiProfile": { "riskTolerance": 50, "aggressiveness": 55, "budgetStrategy": "balanced" },
+  "active": true
+}
+```
 
-A list of `carDefIds` the player must own simultaneously to complete it.
-Completion is checked automatically after every action that can change the
-garage (`updateCollectionProgress` in `game/reducer.ts`).
-
-## Adding a daily reward day (`dailyRewards.json` → `DailyRewardDay[]`)
-
-`kind` is one of `credits | energy | upgradeParts | tokens | pack |
-premiumPack`. `pack` grants `pack_basic`, `premiumPack` grants `pack_epic` —
-see the `CLAIM_DAILY_REWARD` case in `game/reducer.ts` if you want to change
-which pack ids those map to.
-
-## Brands (`brands.json` → `string[]`)
-
-A flat list of invented brand names. Add new ones here first, then reference
-them from `cars.json`'s `brand` field.
+In the current Phase 1 build, `carInstanceIds`/`driverIds` stay empty — AI
+opponent rosters are generated fresh per race by
+`src/sim/fieldGenerator.ts` from the static car/driver pools (see
+ARCHITECTURE.md's "Next phases" note on giving AI teams persistent
+rosters). `aiProfile.budgetStrategy` and `riskTolerance` are read today only
+by the auction bidding logic (`services/auctions.ts`); a future AI-team
+economy would use them more broadly.

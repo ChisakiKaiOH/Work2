@@ -1,13 +1,15 @@
-# Racing Dynasty
+# Racing Dynasty — Historical Motorsport Manager (1970–2026)
 
-A mobile racing-manager / car-collector game built with React 19, TypeScript and
-Capacitor. You don't drive directly: you build a collection of original cars,
-upgrade them, choose a race strategy, and watch the simulated race unfold —
-then spend the rewards on more cars, upgrades and packs.
+A mobile team-management game. You don't drive directly — you build a
+racing team starting in 1970: hire or rent drivers, buy or rent cars,
+negotiate contracts, bid at auctions for historically important cars, and
+watch races unfold through a dynamic, decision-driven simulation where
+*you* choose Attack / Defend / Wait / Push at key moments, each with a real
+computed success chance.
 
-Every car brand, driver, circuit and boss in the game is original and invented
-for this project (e.g. Auron, Veltara, Kronwerk, Ferrano, Rosso Motors). No
-real manufacturer, athlete, team or circuit is referenced anywhere.
+Every team, driver, manufacturer and circuit is an original invention
+evocative of real-world motorsport history, never a reproduction of a real
+name, logo or likeness (see "A note on names" below).
 
 ## Quick start
 
@@ -19,49 +21,77 @@ npm run test      # Vitest unit test suite
 npm run lint      # oxlint
 ```
 
-See [BUILD.md](./BUILD.md) for the full build/release workflow, including how
-to produce an Android APK.
+See [BUILD.md](./BUILD.md) for the Android build.
 
-## What's implemented
+## Current scope: Phase 1 — Core 1970
 
-- **Garage & cars** — 50 original cars across 6 categories (Street → Legend)
-  and 6 rarities (Common → Mythic), each with a full 9-stat profile and a
-  deterministic Performance Rating (PR).
-- **Upgrades** — 12 categories (grouped into Engine / Transmission / Chassis /
-  Brakes), 10 levels each, escalating cost curve.
-- **Race simulation** — a pure, UI-independent lap-by-lap simulator
-  (`RaceSimulator`) driven by PR, tyre/weather matchups, strategy choice and
-  driver archetype. Better cars win more often, never automatically.
-- **World Tour** — 6 regions, 6 championships, 18 named bosses with their own
-  personality, car and dialogue.
-- **Packs & economy** — 8 packs with *visible* odds and a pity system, a daily
-  procedural used-car market, 3 currencies (Credits / Tokens / Energy),
-  achievements, collections, a 7-day daily-reward cycle, and a leveling system
-  (1–100).
-- **Mock-first services** — ads, store purchases, auth, cloud save,
-  leaderboards and remote config are all implemented locally behind real
-  interfaces so a backend can be added later without touching call sites. See
-  [MONETIZATION.md](./MONETIZATION.md) and [ARCHITECTURE.md](./ARCHITECTURE.md).
+This build implements exactly the brief's own Phase 1 roadmap: a genuinely
+playable, tested core for the 1970 season, built to extend cleanly into
+later eras rather than a mockup of the full 1970–2026 scope. Concretely:
+
+- **Time & calendar** — a real `TimeManager`/calendar: pre-season, private
+  tests, races, a market refresh, an auction, championship end, season end.
+  You can't skip past a race — you have to go run it.
+- **Garage** — buy or rent any of 10 original 1970 cars (Formula, Sports
+  Car, GT, Touring, Prototype), each with a real stat profile; sell owned
+  cars back for a discounted value.
+- **Drivers** — 10 original drivers with skills (qualifying, overtaking,
+  defending, wet-weather, tyre/fuel management, consistency, aggressiveness),
+  rating/potential/experience/form. Hire on a multi-race contract (salary
+  paid per event) or rent for a single race.
+- **Dynamic race engine** — lap-by-lap, with 3 scripted player decision
+  points per race (two "racing" decisions — Attack/Defend/Wait/Push — plus
+  one pit-strategy decision — Undercut/Stay out/Wait), each option showing
+  a real percentage computed from driver skill + car stat + track + weather
+  + experience modifiers. A better car/driver wins more often — never
+  guaranteed. Mechanical failures, driver errors, overtakes and a rare
+  safety car are all logged events, not just a final number.
+- **Auctions** — a historically important car (the Veltara 917K) goes to
+  auction once a season; AI rivals bid based on their own budget and
+  reputation.
+- **Championship standings** — a real points table (9-6-4-3-2-1) tracking
+  the player's wins/podiums/points across the season.
+- **Save/load** — versioned, autosaved to `localStorage`.
+
+## Known Phase 1 simplifications (honest, not hidden)
+
+- **AI opponent rosters are generated per race**, not tracked as persistent
+  AI-team ownership — so championship standings currently track the player
+  only, not a full rival grid. Full AI-team economy simulation (teams
+  buying/renting cars and drivers, failing, merging) is brief sections
+  67-68, explicitly scoped for a later phase.
+- **Weather is fixed for the whole race** (picked once, at race start, from
+  the track's rain probability) rather than changing mid-race.
+- **Monetization/ads scaffolding is not built yet.** The brief treats this
+  as "predisporre" (prepare) rather than a Phase 1 requirement (sections
+  93-96); it will come alongside the first in-app economy that actually
+  needs it.
+- **Only the 1970 season exists.** The later eras (1971-2026), the
+  technology tree, regulation changes, the driver academy/scouting system,
+  sponsors, and real/display name variants for licensed assets are
+  documented in the brief but intentionally not built yet — see the
+  "Next phases" note in [GAME_DESIGN.md](./GAME_DESIGN.md).
+
+## A note on names
+
+Every manufacturer, team, driver, circuit and championship name in this
+build is an original invention (e.g. Ferrano, Veltara, Kronwerk, Scuderia
+Lupo, Monteverde Circuit) rather than a lightly-disguised real trademark.
+The brief's own section 12 suggested "real names, slightly modified"
+(Ferrari → Ferrano-style); this build instead uses fully original names
+throughout, for the same reason the data layer separates `displayName`
+from any real-world reference: it keeps the game legally safe to publish
+without needing a license, while still reading as clearly "vintage
+motorsport" in flavor. See `ARCHITECTURE.md` for how the data layer is
+built so a licensed asset pack could still be swapped in later without a
+logic change.
 
 ## Documentation
 
 | File | Covers |
 |---|---|
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Folder layout, data flow, how logic/data/UI are separated |
-| [GAME_DESIGN.md](./GAME_DESIGN.md) | Rules, formulas, balancing, content quotas |
-| [DATA_FORMAT.md](./DATA_FORMAT.md) | How to add/edit cars, tracks, championships, packs, etc. |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Folder layout, data flow, the race engine's design |
+| [GAME_DESIGN.md](./GAME_DESIGN.md) | Rules, formulas, the decision system, content, roadmap |
+| [DATA_FORMAT.md](./DATA_FORMAT.md) | How to add cars, drivers, tracks, a new season |
 | [BUILD.md](./BUILD.md) | Local dev, web build, Android build/release |
-| [MONETIZATION.md](./MONETIZATION.md) | What's virtual, what's mocked, the P2P-never guarantee |
 | [TESTING.md](./TESTING.md) | Test suite layout and how to run it |
-
-## Known simplifications (honest, not hidden)
-
-- Events (`src/data/events.json`) are a fixed catalogue rather than a
-  time-rotating scheduler; launching one plays a normal race on its track and
-  weather. A real rotation (section "9+ rotating event types") would need a
-  scheduled RemoteConfig-driven activation window — the data model already
-  supports it (`EventDef`), only the rotation clock is not wired up yet.
-- Leaderboards show fixed mock rival names (`LocalLeaderboardService`); there
-  is no real multiplayer backend.
-- Boss races pit the player against the named boss plus 5 generated filler
-  opponents, not an exclusive 1-on-1.
